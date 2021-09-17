@@ -90,12 +90,30 @@ namespace MultiplayerTetris
         }
 
 
-        public void Draw(int x, int y, SpriteBatch _spriteBatch, GraphicsDeviceManager _graphics) 
+        public void Draw(int x, int y, SpriteBatch spriteBatch, GraphicsDeviceManager graphics) 
         {
 
             foreach (Rectangle r in Shape)
             {
-                Rectangle.Draw(r.X + x, r.Y + y, r.Width, r.Height, Colour, _spriteBatch, _graphics);
+
+                int _x = r.X;
+                int _y = r.Y;
+
+                Rectangle.Draw(_x + 2*x, _y + 2*y, r.Width, r.Height, Colour, spriteBatch, graphics);
+
+                _x -= SquareSize * 2;
+                _y -= SquareSize * 2;
+
+
+
+                int temp = _x;
+                _x = -_y;
+                _y = temp;
+
+                _x += SquareSize * 2;
+                _y += SquareSize * 2;
+
+                Rectangle.Draw(_x+ x - ((r.Height > 2*SquareSize)? SquareSize*2:0) , _y+y - ((r.Width > SquareSize)? SquareSize:0), r.Height, r.Width, Colour, spriteBatch, graphics);
             }
 
         }

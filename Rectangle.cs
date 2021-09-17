@@ -30,23 +30,21 @@ namespace MultiplayerTetris
 
         public Rectangle(int x, int y, int width, int height) : this(x, y,width, height, Color.White) { }
         
-        public void Draw(SpriteBatch _spriteBatch, GraphicsDeviceManager _graphics)
+        public void Draw(SpriteBatch spriteBatch, GraphicsDeviceManager graphics)
         {
-            Draw(Colour, _spriteBatch, _graphics);
+            Draw(Colour, spriteBatch, graphics);
         }
 
-        public void Draw(Color _colour, SpriteBatch _spriteBatch, GraphicsDeviceManager _graphics)
+        public void Draw(Color colour, SpriteBatch spriteBatch, GraphicsDeviceManager graphics)
         {
 
-            Draw(X, Y, Width, Height, _colour, _spriteBatch, _graphics);
+            Draw(X, Y, Width, Height, colour, spriteBatch, graphics);
         }
 
-        public static void Draw(int x, int y, int w, int h, Color _colour, SpriteBatch _spriteBatch, GraphicsDeviceManager _graphics)
+        public static void Draw(int x, int y, int w, int h, Color colour, SpriteBatch spriteBatch, GraphicsDeviceManager graphics)
         {
-            _spriteBatch.Begin();
-
             Color[] data = new Color[w * h];
-            Texture2D rectTexture = new Texture2D(_graphics.GraphicsDevice, w, h);
+            Texture2D rectTexture = new Texture2D(graphics.GraphicsDevice, w, h);
 
             for (int i = 0; i < data.Length; ++i) 
                 data[i] = Color.White;
@@ -54,9 +52,9 @@ namespace MultiplayerTetris
             rectTexture.SetData(data);
             var position = new Vector2(x, y);
 
-            _spriteBatch.Draw(rectTexture, position, _colour);
+            spriteBatch.Draw(rectTexture, position, colour);
 
-            _spriteBatch.End();
+            spriteBatch.End();
         }
     
     
