@@ -54,6 +54,24 @@ namespace MultiplayerTetris
                 (int)vertices.Max(v => v.X)-x,(int)vertices.Max(v => v.Y)-y);
         }
 
+        public static Vector2[] RectToSquares(Rectangle rect,int squareSize)
+        {
+            int x_amount = rect.Width / squareSize;
+            int y_amount = rect.Height / squareSize;
+            
+            Vector2[] squares = new Vector2[x_amount*y_amount];
+            
+            for (int i = 0; i < x_amount; i++)
+            {
+                for (int j = 0; j < y_amount; j++)
+                {
+                    squares[i*y_amount + j] = new Vector2(rect.X + i*squareSize,rect.Y + j*squareSize);
+                }
+            }
+
+            return squares;
+        }
+
 
         public Rectangle(int x, int y, int width, int height) : this(x, y,width, height, Color.White) { }
         
