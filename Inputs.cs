@@ -19,21 +19,18 @@ namespace MultiplayerTetris
             releasedBuffers = new Dictionary<Keys,bool>();
             pressedBuffers = new Dictionary<Keys,bool>();
             timedBuffers = new Dictionary<Keys, int>();
+
+            foreach (Keys currentKey in typeof(Keys).GetEnumValues())
+            {
+                releasedBuffers.Add(currentKey, false);
+                pressedBuffers.Add(currentKey, false);
+                timedBuffers.Add(currentKey, 0);
+            }
         }
 
         public bool KeyReleased(Keys key)
         {
-            bool buffer = false;
-
-            try
-            {
-                buffer = releasedBuffers[key];
-            }
-            catch
-            {
-                releasedBuffers.Add(key,false);
-            }
-            
+            bool buffer = releasedBuffers[key];
             
             KeyboardState state = Keyboard.GetState();
 
@@ -55,23 +52,13 @@ namespace MultiplayerTetris
         
         public bool KeyPressed(Keys key)
         {
-            bool buffer = false;
+            bool buffer = pressedBuffers[key];
 
-            try
-            {
-                buffer = pressedBuffers[key];
-            }
-            catch
-            {
-                pressedBuffers.Add(key,false);
-            }
-            
-            
             KeyboardState state = Keyboard.GetState();
 
             if (state.IsKeyDown(key))
             {
-                if (!pressedBuffers[key])
+                if (!buffer)
                 {
                     pressedBuffers[key] = true;
                     return true;
@@ -89,14 +76,7 @@ namespace MultiplayerTetris
         {
             int buffer = 0;
 
-            try
-            {
-                buffer = timedBuffers[key];
-            }
-            catch
-            {
-                timedBuffers.Add(key,0);
-            }
+            buffer = timedBuffers[key];
 
             if (buffer >= rate)
             {
