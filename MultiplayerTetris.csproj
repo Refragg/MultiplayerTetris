@@ -18,6 +18,9 @@
     <EmbeddedResource Include="Icon.bmp" />
   </ItemGroup>
   <ItemGroup>
+    <None CopyToOutputDirectory="Always" Include="Content\Font.xnb" />
+  </ItemGroup>
+  <ItemGroup>
     <MonoGameContentReference Include="Content\Content.mgcb" />
   </ItemGroup>
   <ItemGroup>

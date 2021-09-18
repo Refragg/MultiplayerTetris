@@ -2,6 +2,7 @@ using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using System.Linq;
 
 namespace MultiplayerTetris
 {
@@ -28,6 +29,32 @@ namespace MultiplayerTetris
             Colour = color;
         }
 
+
+        public static Vector2[] RectToVertices(Rectangle rectangle)
+        {
+
+            Vector2[] vertices = new Vector2[4];
+
+
+            vertices[0] = new Vector2(rectangle.X, rectangle.Y);
+            vertices[1] = new Vector2(rectangle.X + rectangle.Width, rectangle.Y);
+            vertices[2] = new Vector2(rectangle.X, rectangle.Y + rectangle.Height);
+            vertices[3] = new Vector2(rectangle.X + rectangle.Width, rectangle.Y + rectangle.Height);
+
+            return vertices;
+
+        }
+
+        public static Rectangle VerticesToRect(Vector2[] vertices)
+        {
+            //vertices.Min(v => v.X);
+            int x = (int) vertices.Min(v => v.X);
+            int y = (int) vertices.Min(v => v.Y);
+            return new Rectangle(x,y,
+                (int)vertices.Max(v => v.X)-x,(int)vertices.Max(v => v.Y)-y);
+        }
+
+
         public Rectangle(int x, int y, int width, int height) : this(x, y,width, height, Color.White) { }
         
         public void Draw(SpriteBatch spriteBatch, GraphicsDeviceManager graphics)
@@ -53,8 +80,6 @@ namespace MultiplayerTetris
             var position = new Vector2(x, y);
 
             spriteBatch.Draw(rectTexture, position, colour);
-
-            spriteBatch.End();
         }
     
     
