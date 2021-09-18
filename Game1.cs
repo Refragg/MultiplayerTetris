@@ -84,14 +84,16 @@ namespace MultiplayerTetris
             
             
             // TODO: Add your initialization logic here
-            CurrentColorPalette = new TetrominoColorPalette();
-            CurrentColorPalette[Tetromino.Type.I] = new Color(49,199,239);
-            CurrentColorPalette[Tetromino.Type.O] = new Color(247,211,8);
-            CurrentColorPalette[Tetromino.Type.T] = new Color(173,77,156);
-            CurrentColorPalette[Tetromino.Type.S] = new Color(66,182,66);
-            CurrentColorPalette[Tetromino.Type.Z] = new Color(239,32,41);
-            CurrentColorPalette[Tetromino.Type.J] = new Color(90,101,173);
-            CurrentColorPalette[Tetromino.Type.L] = new Color(239,121,33);
+            CurrentColorPalette = new TetrominoColorPalette(new Color[]
+            {
+                new Color(49,199,239),      // I
+                new Color(247,211,8),       // O
+                new Color(173,77,156),      // T
+                new Color(66,182,66),       // S
+                new Color(239,32,41),       // Z
+                new Color(90,101,173),      // J
+                new Color(239,121,33)       // L
+            });
 
             currentPiece = new Tetromino(Tetromino.Type.I);
             currentPiece.Update(x_pos, y_pos, _spriteBatch, _graphics);
