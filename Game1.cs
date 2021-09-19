@@ -253,13 +253,99 @@ namespace MultiplayerTetris
 
             if (inputHandler.TimedPress(Keys.D,5))
             {
-                x_pos += scaleMult;
+                
+                List<Vector2> squares = new List<Vector2>();
+
+                foreach (Rectangle r in currentPiece._r)
+                {
+                    squares.AddRange(Rectangle.RectToSquares(r,scaleMult));
+                }
+
+                List<Vector2> lowestSquares = new List<Vector2>();
+                
+                for (int i = 0; i < squares.Count; i++)
+                {
+
+                    int index = lowestSquares.FindIndex(v => (int) v.Y == (int) squares[i].Y);
+
+                    if (index==-1)
+                    {
+                        lowestSquares.Add(squares[i]);
+                    }
+                    else
+                    {
+                        lowestSquares[index] = (lowestSquares[index].X < squares[i].X) ? squares[i] : lowestSquares[index];
+                    }
+                }
+                
+                int canMove = 1;
+                for (int j = 0; j < lowestSquares.Count; j++)
+                {
+                    int xCheck = (int)(lowestSquares[j].X + x_pos )/50;
+                    int yCheck = (int)((lowestSquares[j].Y + y_pos)/50) * 14;
+
+
+                    if (gameGrid[xCheck + yCheck] != new Color(0, 0, 0, 0))
+                    {
+                        canMove *= 0;
+                    }
+
+                    
+                }
+                
+                
+                x_pos += scaleMult*canMove;
                 MoveCheck(grid_l, grid_r);
+                
+                
+                
+                
             }
             
             if (inputHandler.TimedPress(Keys.A,5))
             {
-                x_pos -= scaleMult;
+                
+                List<Vector2> squares = new List<Vector2>();
+
+                foreach (Rectangle r in currentPiece._r)
+                {
+                    squares.AddRange(Rectangle.RectToSquares(r,scaleMult));
+                }
+
+                List<Vector2> lowestSquares = new List<Vector2>();
+                
+                for (int i = 0; i < squares.Count; i++)
+                {
+
+                    int index = lowestSquares.FindIndex(v => (int) v.Y == (int) squares[i].Y);
+
+                    if (index==-1)
+                    {
+                        lowestSquares.Add(squares[i]);
+                    }
+                    else
+                    {
+                        lowestSquares[index] = (lowestSquares[index].X > squares[i].X) ? squares[i] : lowestSquares[index];
+                    }
+                }
+                
+                int canMove = 1;
+                for (int j = 0; j < lowestSquares.Count; j++)
+                {
+                    int xCheck = (int)(lowestSquares[j].X + x_pos )/50 -2;
+                    int yCheck = (int)((lowestSquares[j].Y + y_pos)/50) * 14;
+
+
+                    if (gameGrid[xCheck + yCheck] != new Color(0, 0, 0, 0))
+                    {
+                        canMove *= 0;
+                    }
+
+
+                    
+                }
+                
+                x_pos -= scaleMult * canMove;
                 MoveCheck(grid_l, grid_r);
             }
             
