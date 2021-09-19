@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -9,6 +10,55 @@ namespace MultiplayerTetris
 {
     public class Grid
     {
+
+
+        public Texture2D texture;
+        public Vector2 position;
+        public Color Colour;
+
+
+        public Grid(int x, int y, int width, int height, int x_amount, int y_amount, Color color, int thickness, GraphicsDeviceManager _graphics)
+        {
+
+            Colour = color;
+
+            Color[] pixelArray = new Color[(width*x_amount+1)*(height*y_amount+1)];
+            
+            texture = new Texture2D(_graphics.GraphicsDevice,width*x_amount +1, height*y_amount +1);
+            
+            
+            int _x = 0;
+            int _y = 0;
+
+            for (int i = 0; i < x_amount+1; i++)
+            {
+                Rectangle.DrawToTexture(pixelArray,texture.Width,texture.Height,_x,_y,1,height*y_amount,color,_graphics);
+
+                _x += width;
+            }
+
+            _x = 0;
+            for (int j = 0; j < y_amount+1; j++)
+            {
+                Rectangle.DrawToTexture(pixelArray,texture.Width,texture.Height,_x,_y,width*x_amount,1,color,_graphics);
+                
+                _y += height;
+            }
+            
+            //Rectangle.DrawToTexture(pixelArray,texture.Width,texture.Height,100,100,5,10,color,_graphics);
+            
+            position = new Vector2(x, y);
+            texture.SetData(pixelArray);
+        }
+
+        public void Draw(SpriteBatch spriteBatch, GraphicsDeviceManager _graphics)
+        {
+
+
+            spriteBatch.Draw(texture, position, Colour);
+            
+            
+        }
 
         public static void Draw(int x, int y, int width, int height, int x_amount, int y_amount, Color color, int thickness, SpriteBatch _spriteBatch, GraphicsDeviceManager _graphics)
         {

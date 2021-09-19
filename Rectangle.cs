@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -98,6 +99,28 @@ namespace MultiplayerTetris
             var position = new Vector2(x, y);
 
             spriteBatch.Draw(rectTexture, position, colour);
+        }
+
+        public static void DrawToTexture(Color[] data,int maxW,int maxH, int x, int y, int w, int h, Color colour, GraphicsDeviceManager graphics)
+        {
+
+            //Texture2D rectTexture = new Texture2D(graphics.GraphicsDevice, w, h);
+
+            int start = x+y*maxW;
+
+            for (int i = 0; i < w; i++)
+            {
+                for (int j = 0; j < h; j++)
+                {
+  
+                    data[start + (j * maxW) + i] = Color.White;
+
+                    
+                }
+            }
+                
+
+
         }
     
     

@@ -12,39 +12,50 @@ namespace MultiplayerTetris
     public class Tetromino
     {
 
-        public const int SquareSize = 50;
+        public const int SquareSize = Game1.GridSquareSize;
 
         public static readonly Rectangle[][] Rectangles =
         {
-            new Rectangle[] { new Rectangle(SquareSize, 0, SquareSize, SquareSize * 4) },
+
+            // I
+            new Rectangle[] { new Rectangle(0, SquareSize, SquareSize * 4, SquareSize) },
+
+            // O
             new Rectangle[] { new Rectangle(SquareSize, SquareSize, SquareSize * 2, SquareSize * 2) },
             
+            // T
             new Rectangle[]
             {
-                new Rectangle(0, SquareSize, SquareSize, SquareSize),
-                new Rectangle(SquareSize, 0, SquareSize, SquareSize * 3)
+                new Rectangle(SquareSize, 0, SquareSize, SquareSize),
+                new Rectangle(0, SquareSize, SquareSize * 3, SquareSize)
             },
 
+            // S
             new Rectangle[]
             {
-                new Rectangle(0, 0, SquareSize, SquareSize * 2),
-                new Rectangle(SquareSize, SquareSize, SquareSize, SquareSize * 2)
-            },
-            new Rectangle[]
-            {
-                new Rectangle(0, SquareSize, SquareSize, SquareSize * 2),
-                new Rectangle(SquareSize, 0, SquareSize, SquareSize * 2)
+                new Rectangle(SquareSize, 0, SquareSize * 2, SquareSize),
+                new Rectangle(0, SquareSize, SquareSize * 2, SquareSize)
             },
 
-            new Rectangle[]
-            {
-                new Rectangle(0, SquareSize * 2, SquareSize, SquareSize),
-                new Rectangle(SquareSize, 0, SquareSize, SquareSize * 3)
-            },
+            // Z
             new Rectangle[]
             {
                 new Rectangle(0, 0, SquareSize * 2, SquareSize),
-                new Rectangle(SquareSize, SquareSize, SquareSize, SquareSize * 2)
+                new Rectangle(SquareSize, SquareSize, SquareSize * 2, SquareSize)
+            },
+
+            // J
+            new Rectangle[]
+            {
+                new Rectangle(0, 0, SquareSize, SquareSize),
+                new Rectangle(0, SquareSize, SquareSize * 3, SquareSize)
+            },
+
+            // L
+            new Rectangle[]
+            {
+                new Rectangle(SquareSize * 2, 0, SquareSize, SquareSize),
+                new Rectangle(0, SquareSize, SquareSize * 3, SquareSize)
             }
         };
 
@@ -107,7 +118,7 @@ namespace MultiplayerTetris
 
         }
 
-        public void Update(int x, int y, SpriteBatch _spriteBatch, GraphicsDeviceManager _graphics)
+        public void Update()
         {
             if (BlockType != Type.O)
             {
@@ -132,7 +143,7 @@ namespace MultiplayerTetris
                         int tempx = _x;
                         int tempy = _y;
 
-                        // 2 bit binary number 90*n degree rotation matrix bit fuckery
+                        // 2 bit binary number 90*n degree rotation matrix bit frickery
                         _x = ((rotation[1]) ? tempy : tempx) * ((rotation[0] ^ rotation[1]) ? -1 : 1);
                         _y = ((rotation[1]) ? tempx : tempy) * ((rotation[0]) ? -1 : 1);
 
@@ -191,7 +202,7 @@ namespace MultiplayerTetris
             
             foreach (Vector2 square in squares)
             {
-                grid[((int)((x + square.X)/Tetromino.SquareSize)-1) + (((int)((y + square.Y)/Tetromino.SquareSize))*14)] = Game1.CurrentColorPalette[BlockType];
+                grid[((int)((x + square.X)/Tetromino.SquareSize)-1) + (((int)((y + square.Y)/Tetromino.SquareSize))*Game1.GridWidth)] = Game1.CurrentColorPalette[BlockType];
             }
                 
             

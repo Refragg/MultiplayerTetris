@@ -18,7 +18,11 @@
     <EmbeddedResource Include="Icon.bmp" />
   </ItemGroup>
   <ItemGroup>
-    <None CopyToOutputDirectory="Always" Include="Content\Font.xnb" />
+    <None CopyToOutputDirectory="Always" Include="Content\font\DebugFont.xnb" />
+    
+    <None CopyToOutputDirectory="Always" Include="Content\se\place_block.wav" />
+    <None CopyToOutputDirectory="Always" Include="Content\se\clear_row.wav" />
+    <None CopyToOutputDirectory="Always" Include="Content\se\fast_scroll.wav" />
   </ItemGroup>
   <ItemGroup>
     <MonoGameContentReference Include="Content\Content.mgcb" />
