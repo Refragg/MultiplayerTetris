@@ -72,7 +72,7 @@ namespace MultiplayerTetris
             return false;
         }
         
-        public bool TimedPress(Keys key, int rate)
+        public bool TimedPress(Keys key, int rate, int wait)
         {
             int buffer = 0;
 
@@ -88,15 +88,21 @@ namespace MultiplayerTetris
 
             if (state.IsKeyDown(key))
             {
+                if (timedBuffers[key] == -1 * wait)
+                {
+                    timedBuffers[key]++;
+                    return true;
+                }
+                
                 timedBuffers[key]++;
-                if (buffer == 0)
+                if (buffer == 0 && timedBuffers[key]>=0)
                 {
                     return true;
                 }
             }
             else
             {
-                timedBuffers[key] = 0;
+                timedBuffers[key] = -1*wait;
             }
 
             

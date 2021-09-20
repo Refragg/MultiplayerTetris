@@ -24,7 +24,7 @@ namespace MultiplayerTetris
         //private Rectangle blobby_guy;
 
 
-        public const int DisplayOffsetX = 100;
+        public const int DisplayOffsetX = 175;
         public const int DisplayOffsetY = 75;
 
         public const int GridOffsetX = 25;
@@ -32,11 +32,24 @@ namespace MultiplayerTetris
         public const int GridSquareSize = 25;
         public const int GridWidth = 10;      //250
         public const int GridHeight = 24;     //600
-
-
-
+        
         public int xSpawnPosition = 75;
         public int ySpawnPosition = -25;
+
+        private Tetromino.Type bufferedPiece;
+        private bool swapped = false;
+
+        private Color[] bufferedPieceGrid;
+        private Texture2D bufferedPieceTexture;
+
+        private int bufferedPieceX = -125;
+        private int bufferedPieceY = 25;
+
+        private bool firstBuffer;
+
+        private Color[] backgroundGrid;
+        private Texture2D backgroundTexture;
+        
 
         private readonly static int _tetrominoTypeCount = typeof(Tetromino.Type).GetEnumValues().Length;
 
@@ -72,8 +85,8 @@ namespace MultiplayerTetris
         private Color[] nextPiecesGrid;
         private Texture2D nextPiecesTexture;
 
-        private const int nextPiecesX = 425;
-        private const int nextPiecesY = 100;
+        private const int nextPiecesX = 325;
+        private const int nextPiecesY = 25;
 
         private const int nextPiecesWidth = 100;
         private const int nextPiecesHeight = 625;
@@ -101,7 +114,7 @@ namespace MultiplayerTetris
         protected override void Initialize()
         {
             _graphics.IsFullScreen = false;
-            _graphics.PreferredBackBufferWidth = 600;
+            _graphics.PreferredBackBufferWidth = 650;
             _graphics.PreferredBackBufferHeight = 800;
 
             _graphics.ApplyChanges();
@@ -207,6 +220,58 @@ namespace MultiplayerTetris
             SE_ClearRow = SoundEffect.FromFile(Path.Combine("Content", "se", "clear_row.wav"));
             SE_FastScroll = SoundEffect.FromFile(Path.Combine("Content", "se", "fast_scroll.wav"));
 
+            firstBuffer = true;
+            bufferedPiece = Tetromino.Type.I;//(Tetromino.Type) _r.Next(_tetrominoTypeCount);
+
+            bufferedPieceGrid = new Color[8];
+            bufferedPieceTexture = new Texture2D(_graphics.GraphicsDevice,4,2);
+            
+
+
+            int screenGridWidth = _graphics.PreferredBackBufferWidth/GridSquareSize;
+            int screenGridHeight= _graphics.PreferredBackBufferHeight/GridSquareSize;
+            backgroundGrid = new Color[screenGridWidth*screenGridHeight];
+            backgroundTexture = new Texture2D(_graphics.GraphicsDevice,screenGridWidth,screenGridHeight);
+
+            int xOffset = bufferedPieceX + DisplayOffsetX - GridSquareSize;
+            int yOffset = bufferedPieceY + DisplayOffsetY - GridSquareSize;
+
+            xOffset /= GridSquareSize;
+            yOffset /= GridSquareSize;
+
+            for (int i = 0; i < 6; i++)
+            {
+                for (int j = 0; j < 5; j++)
+                {
+                    if (!((i == 0 && j == 0) || (i == 5 && j == 4) || (i == 5 && j == 0) || (i == 0 && j == 4)))
+                    {
+                        backgroundGrid[(xOffset + i) + (yOffset + j)*screenGridWidth] = (i>0 && i<5 && j>0 && j<4)?new Color(30,30,30):new Color(50,50,50);
+                    }
+
+                }
+            }
+            
+            xOffset = nextPiecesX + DisplayOffsetX - GridSquareSize;
+            yOffset = nextPiecesY + DisplayOffsetY - GridSquareSize;
+            
+            xOffset /= GridSquareSize;
+            yOffset /= GridSquareSize;
+            
+            for (int i = 0; i < 6; i++)
+            {
+                for (int j = 0; j < 26; j++)
+                {
+                    if (!((i == 0 && j == 0) || (i == 5 && j == 25) || (i == 5 && j == 0) || (i == 0 && j == 25)))
+                    {
+                        backgroundGrid[(xOffset + i) + (yOffset + j)*screenGridWidth] = (i>0 && i<5 && j>0 && j%5!=0)?new Color(30,30,30):new Color(50,50,50);
+                    }
+
+                }
+            }
+            
+            
+            backgroundTexture.SetData(backgroundGrid);
+            
             base.Initialize();
         }
 
@@ -470,6 +535,38 @@ namespace MultiplayerTetris
 
         }
 
+        private void UpdateBufferedPiece()
+        {
+            if (!firstBuffer)
+            {
+                bufferedPieceGrid = new Color[8];
+            
+            
+                List<Vector2> squares = new List<Vector2>();
+
+                foreach (Rectangle r in Tetromino.Rectangles[(int)bufferedPiece])
+                {
+                    squares.AddRange(Rectangle.RectToSquares(r,GridSquareSize));
+                }
+
+                int yOffset = 0;
+
+                if (bufferedPiece == Tetromino.Type.O) yOffset = -1;
+                
+                foreach (Vector2 sq in squares)
+                {
+                    int x = (int) sq.X / GridSquareSize;
+                    int y = ((int) sq.Y / GridSquareSize) + yOffset;
+
+                    bufferedPieceGrid[x + y * nextPiecesTexture.Width] = (swapped)?Color.Gray:CurrentColorPalette[bufferedPiece];
+                }
+            
+            
+                bufferedPieceTexture.SetData(bufferedPieceGrid);
+            }
+
+        }
+
 
         private void UpdateNextPiecesDisplay()
         {
@@ -579,8 +676,11 @@ namespace MultiplayerTetris
                     {
                         int xCheck = (int)(lowestSquares[j].X+x_pos)/GridSquareSize -1;
                         int yCheck = GridWidth * k;
-                        
 
+                        if (xCheck + yCheck >= gameGrid.Length)
+                        {
+                            break;
+                        }
                         if (gameGrid[xCheck+yCheck] != new Color(0,0,0,0))
                         {
                             highestInLine = k-1;
@@ -627,6 +727,8 @@ namespace MultiplayerTetris
 
                     // update display of next pieces
                     UpdateNextPiecesDisplay();
+                    swapped = false;
+                    UpdateBufferedPiece();
 
                     Destroy();
 
@@ -682,14 +784,23 @@ namespace MultiplayerTetris
                 Color.White);
             
             
+            
+            _spriteBatch.Draw(backgroundTexture,new Vector2(), Color.White);
+            
+            
+            
             //phantomDropTexture.SetData(phantomDropGrid);
             _spriteBatch.Draw(phantomDropTexture, 
                 new Vector2((phantomX+DisplayOffsetX)/GridSquareSize,(phantomY+DisplayOffsetY)/GridSquareSize), 
                 Color.White);
 
-
+            _spriteBatch.Draw(bufferedPieceTexture, 
+                new Vector2((bufferedPieceX+DisplayOffsetX)/GridSquareSize,(bufferedPieceY+DisplayOffsetY)/GridSquareSize), 
+                Color.White);
+            
+            
             _spriteBatch.Draw(nextPiecesTexture,
-                new Vector2(nextPiecesX / GridSquareSize, nextPiecesY / GridSquareSize),
+                new Vector2((nextPiecesX+DisplayOffsetX) / GridSquareSize, (nextPiecesY+DisplayOffsetY) / GridSquareSize),
                 Color.White);
 
             _spriteBatch.End();
@@ -700,21 +811,35 @@ namespace MultiplayerTetris
 
             base.Draw(gameTime);
 
+            
 
-
-            /*
-
-            if (inputHandler.KeyPressed(Keys.Space))
+            if (inputHandler.KeyPressed(Keys.LeftShift) && !swapped)
             {
-                int next = (int) currentPiece.BlockType + 1;
-                if (next > 6) next = 0;
+                swapped = true;
+                Tetromino.Type temp = currentPiece.BlockType;
+                //currentPiece.BlockType = bufferedPiece;
+                currentPiece = new Tetromino(bufferedPiece);
+                bufferedPiece = temp;
                 
-                currentPiece = new Tetromino((Tetromino.Type)(next));
+                x_pos = xSpawnPosition + GridOffsetX;
+                y_pos = ySpawnPosition + GridOffsetY;
+                
+                if (firstBuffer)
+                {
+                    firstBuffer = false;
+                    currentPiece = new Tetromino(_pieces.Dequeue());
+                    _pieces.Enqueue((Tetromino.Type)_r.Next(_tetrominoTypeCount));
+                }
+                
+                UpdateBufferedPiece();
+
                 currentPiece.Update();
+                UpdateNextPiecesDisplay();
+                UpdatePhantom();
+                
             }
-
-
-            */
+            //swapped = false;
+            
 
             if (inputHandler.KeyPressed(Keys.Right))
             {
@@ -742,7 +867,7 @@ namespace MultiplayerTetris
                 
             }
 
-            if (inputHandler.TimedPress(Keys.D,5))
+            if (inputHandler.TimedPress(Keys.D,5,15))
             {
             
                 SE_FastScroll.Play();
@@ -777,7 +902,12 @@ namespace MultiplayerTetris
                     int xCheck = (int)(lowestSquares[j].X + x_pos )/GridSquareSize;
                     int yCheck = (int)((lowestSquares[j].Y + y_pos )/GridSquareSize) * GridWidth;
 
-
+                    if (xCheck + yCheck >= gameGrid.Length)
+                    {
+                        canMove *= 0;
+                        break;
+                    }
+                    
                     if (gameGrid[xCheck + yCheck] != new Color(0, 0, 0, 0))
                     {
                         canMove *= 0;
@@ -795,7 +925,7 @@ namespace MultiplayerTetris
                 
             }
             
-            if (inputHandler.TimedPress(Keys.A,5))
+            if (inputHandler.TimedPress(Keys.A,5,15))
             {
                 
                 SE_FastScroll.Play();
@@ -941,6 +1071,9 @@ namespace MultiplayerTetris
 
                 // update display of next pieces
                 UpdateNextPiecesDisplay();
+                
+                swapped = false;
+                UpdateBufferedPiece();
 
                 Destroy();
                 
