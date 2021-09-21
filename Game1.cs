@@ -21,29 +21,60 @@ namespace MultiplayerTetris
 
         private SpriteFont _spriteFont;
 
-        //private Rectangle blobby_guy;
 
 
-        public const int DisplayOffsetX = 175;
-        public const int DisplayOffsetY = 75;
+        // changeable vars //
 
-        public const int GridOffsetX = 25;
-        public const int GridOffsetY = 25;
-        public const int GridSquareSize = 25;
-        public const int GridWidth = 10;      //250
-        public const int GridHeight = 24;     //600
-        
-        public int xSpawnPosition = 75;
-        public int ySpawnPosition = -25;
+        private const int screenWidth = 650;
+        private const int screenHeight = 800;
+
+        public const int GridSquareSize = 14;
+
+        public const int GridHeight = 24;
+        public const int GridWidth = 20;
+
+        private const int nextPiecesAmount = 5;
+
+        private const int numPlayers = 1;
+
+        // // // // // // //
+
+
+        // calculated vars // 
+        public const int DisplayOffsetX = GridSquareSize * ((screenWidth/GridSquareSize - GridWidth) / 2 -1);
+        public const int DisplayOffsetY = GridSquareSize * ((screenHeight / GridSquareSize - GridHeight) / 2 - 1);
+
+        public const int GridOffsetX = GridSquareSize;
+        public const int GridOffsetY = GridSquareSize;
+
+        public int xSpawnPosition = 3* GridSquareSize;
+        public int ySpawnPosition = -1* GridSquareSize;
+
+        private int xSpawnOffset = (GridWidth / numPlayers) * GridSquareSize;
+
+        private int bufferedPieceX = -5* GridSquareSize;
+        private int bufferedPieceY = GridSquareSize;
+
+        private const int nextPiecesX = (GridWidth + 3) * GridSquareSize;
+        private const int nextPiecesY = GridSquareSize;
+
+        private const int nextPiecesWidth = 4* GridSquareSize;
+        private const int nextPiecesHeight = 5* nextPiecesAmount * GridSquareSize;
+
+        private Tetromino[] currentPieces = new Tetromino[numPlayers];
+
+        private int[][] positions = new int[numPlayers][];
+
+        private float[] realPositionsY = new float[numPlayers];
+        // // // // // // //
+
+
 
         private Tetromino.Type bufferedPiece;
         private bool swapped = false;
 
         private Color[] bufferedPieceGrid;
         private Texture2D bufferedPieceTexture;
-
-        private int bufferedPieceX = -125;
-        private int bufferedPieceY = 25;
 
         private bool firstBuffer;
 
@@ -55,8 +86,6 @@ namespace MultiplayerTetris
 
         private Queue<Tetromino.Type> _pieces;
 
-        private Tetromino currentPiece;
-
         private Random _r;
 
         public static TetrominoColorPalette CurrentColorPalette;
@@ -67,8 +96,10 @@ namespace MultiplayerTetris
 
         private Inputs inputHandler;
 
-        private int x_pos;
-        private int y_pos;
+        private PlayerControllerManager _playerControllerManager;
+
+        //private int x_pos;
+        //private int y_pos;
 
         private int grid_l;
         private int grid_r;
@@ -85,18 +116,11 @@ namespace MultiplayerTetris
         private Color[] nextPiecesGrid;
         private Texture2D nextPiecesTexture;
 
-        private const int nextPiecesX = 325;
-        private const int nextPiecesY = 25;
-
-        private const int nextPiecesWidth = 100;
-        private const int nextPiecesHeight = 625;
-
         private Grid displayGrid;
 
         private Matrix Scale;
 
         private float gravity;
-        private float realPosY;
         private float gravityMult;
         
         private SoundEffect SE_PlaceBlock;
@@ -114,8 +138,8 @@ namespace MultiplayerTetris
         protected override void Initialize()
         {
             _graphics.IsFullScreen = false;
-            _graphics.PreferredBackBufferWidth = 650;
-            _graphics.PreferredBackBufferHeight = 800;
+            _graphics.PreferredBackBufferWidth = screenWidth;
+            _graphics.PreferredBackBufferHeight = screenHeight;
 
             _graphics.ApplyChanges();
             
@@ -132,8 +156,17 @@ namespace MultiplayerTetris
                 new Color(239,121,33)       // L
             });
 
-            currentPiece = new Tetromino(Tetromino.Type.I);
-            currentPiece.Update();
+
+            for (int i = 0; i < numPlayers; i++)
+            {
+                positions[i] = new int[]
+                {
+                    GridOffsetX + xSpawnPosition + xSpawnOffset*i,
+                    GridOffsetY + ySpawnPosition
+                };
+
+            }
+
 
             _spriteFont = Content.Load<SpriteFont>(Path.Combine("font", "DebugFont"));
 
@@ -142,8 +175,8 @@ namespace MultiplayerTetris
             rotation[0] = false;
             rotation[1] = false;
 
-            x_pos = xSpawnPosition + GridOffsetX;
-            y_pos = ySpawnPosition + GridOffsetY;
+            //x_pos = xSpawnPosition + GridOffsetX;
+            //y_pos = ySpawnPosition + GridOffsetY;
             
 
             grid_l = GridOffsetX;
@@ -153,12 +186,19 @@ namespace MultiplayerTetris
 
             _pieces = new Queue<Tetromino.Type>();
             
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < nextPiecesAmount; i++)
             {
                 _pieces.Enqueue((Tetromino.Type)_r.Next(_tetrominoTypeCount));
             }
 
-            
+            for (int i = 0; i < currentPieces.Length; i++)
+            {
+                currentPieces[i] = new Tetromino((Tetromino.Type)_r.Next(_tetrominoTypeCount));
+                currentPieces[i].Update();
+            }
+
+
+
             gameGrid = new Color[GridWidth*GridHeight];
 
             gameTexture = new Texture2D(_graphics.GraphicsDevice, GridWidth, GridHeight);
@@ -177,15 +217,21 @@ namespace MultiplayerTetris
             
             List<Vector2> squares = new List<Vector2>();
 
-            foreach (Rectangle r in currentPiece._r)
+            // TODO: phantom pieces, not just 1 phantom piece
+            //
+            // for (int i = 0; i < currentPieces.Length; i++)
+            //
+            foreach (Rectangle r in currentPieces[0]._r)
             {
                 squares.AddRange(Rectangle.RectToSquares(r,GridSquareSize));
             }
             
-            phantomX = x_pos;
-            phantomY = y_pos;
+            // ++ loop
+            phantomX = positions[0][0];
+            phantomY = positions[0][1];
             
-            UpdatePhantom();
+            // ++ loop
+            UpdatePhantom(0);
 
             
             Vector3 scalingFactor = new Vector3(GridSquareSize, GridSquareSize, 1);
@@ -195,6 +241,8 @@ namespace MultiplayerTetris
             _frameCounter = new FrameCounter();
 
             inputHandler = new Inputs();
+
+            _playerControllerManager = new PlayerControllerManager();
             
             //int x, int y, int width, int height, int x_amount, int y_amount, Color color, int thickness, GraphicsDeviceManager _graphics
             
@@ -209,7 +257,10 @@ namespace MultiplayerTetris
 
 
             gravity = (2*GridSquareSize)/60f;
-            realPosY = 0f;
+            for (int i = 0; i < numPlayers; i++)
+            {
+                realPositionsY[i] = 0f;
+            }
 
             gravityMult = 1f;
 
@@ -259,7 +310,7 @@ namespace MultiplayerTetris
             
             for (int i = 0; i < 6; i++)
             {
-                for (int j = 0; j < 26; j++)
+                for (int j = 0; j < 5* nextPiecesAmount +1; j++)
                 {
                     if (!((i == 0 && j == 0) || (i == 5 && j == 25) || (i == 5 && j == 0) || (i == 0 && j == 25)))
                     {
@@ -290,8 +341,11 @@ namespace MultiplayerTetris
             base.Update(gameTime);
         }
         
-        private void MoveCheck(int minX, int maxX)
+        private void MoveCheck(int minX, int maxX, int currentPieceIndex)
         {
+
+            Tetromino currentPiece = currentPieces[currentPieceIndex];
+
             List<Vector2> vertices = new List<Vector2>();
             foreach (Vector2[] v in currentPiece._v) { vertices.AddRange(v); }
             
@@ -299,14 +353,14 @@ namespace MultiplayerTetris
             int right = (int) vertices.Max(v => v.X);
             
             
-            if (x_pos+left < minX)
+            if (positions[currentPieceIndex][0] +left < minX)
             {
-                x_pos = minX - left;
+                positions[currentPieceIndex][0] = minX - left;
             }
             
-            if (x_pos+right > maxX)
+            if (positions[currentPieceIndex][0] + right > maxX)
             {
-                x_pos = maxX - right;
+                positions[currentPieceIndex][0] = maxX - right;
             }
             
         }
@@ -332,8 +386,10 @@ namespace MultiplayerTetris
         
 
 
-        private KickResult CheckKick(int rotationDir)
+        private KickResult CheckKick(int rotationDir, int currentPieceIndex)
         {
+
+            Tetromino currentPiece = currentPieces[currentPieceIndex];
 
             BitArray lastRotation = new BitArray(2);
 
@@ -361,8 +417,8 @@ namespace MultiplayerTetris
                 
                 foreach (Vector2 sq in rotatedSquares)
                 {
-                    int xCheck = (int) ((sq.X + x_pos ) / GridSquareSize + transform.X) -1;
-                    int yCheck = (int) ((sq.Y + y_pos ) / GridSquareSize + transform.Y);
+                    int xCheck = (int) ((sq.X + positions[currentPieceIndex][0]) / GridSquareSize + transform.X) -1;
+                    int yCheck = (int) ((sq.Y + positions[currentPieceIndex][0]) / GridSquareSize + transform.Y);
                     yCheck *= GridWidth;
                     
                     
@@ -459,8 +515,11 @@ namespace MultiplayerTetris
         }
 
 
-        private void UpdatePhantom()
+        private void UpdatePhantom(int currentPieceIndex)
         {
+
+            Tetromino currentPiece = currentPieces[currentPieceIndex];
+
             List<Vector2> squares = new List<Vector2>();
 
             foreach (Rectangle r in currentPiece._r)
@@ -481,7 +540,7 @@ namespace MultiplayerTetris
             phantomDropTexture.SetData(phantomDropGrid);
 
 
-            phantomX = x_pos;
+            phantomX = positions[currentPieceIndex][0];
             
 
             
@@ -508,9 +567,9 @@ namespace MultiplayerTetris
                 
                 int highestInLine = GridHeight-1;
 
-                for (int k = ((int)(lowestSquares[j].Y+y_pos)/GridSquareSize); k < GridHeight; k++)
+                for (int k = ((int)(lowestSquares[j].Y+ positions[currentPieceIndex][1]) /GridSquareSize); k < GridHeight; k++)
                 {
-                    int xCheck = (int)(lowestSquares[j].X+x_pos)/GridSquareSize -1;
+                    int xCheck = (int)(lowestSquares[j].X+ positions[currentPieceIndex][0]) /GridSquareSize -1;
                     int yCheck = GridWidth * k;
                     
 
@@ -521,7 +580,7 @@ namespace MultiplayerTetris
                     }
                 }
 
-                int gridY = (int) lowestSquares[j].Y + y_pos;
+                int gridY = (int) lowestSquares[j].Y + positions[currentPieceIndex][1];
                 gridY /= GridSquareSize;
                 
 
@@ -530,7 +589,7 @@ namespace MultiplayerTetris
             }
 
             minimumMove++;
-            phantomY = y_pos + minimumMove * GridSquareSize;
+            phantomY = positions[currentPieceIndex][1] + minimumMove * GridSquareSize;
 
 
         }
@@ -582,8 +641,6 @@ namespace MultiplayerTetris
 
             bool blocky = false;
             
-
-
             foreach (Tetromino.Type piece in _pieces)
             {
 
@@ -632,111 +689,160 @@ namespace MultiplayerTetris
 
 
 
+        /*
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         *  here's a fat amount of comment lines so i can find the draw method
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+         *  i keep missing it when i scroll through the program
+         * 
+         * 
+         * 
+         * 
+         * 
+         * 
+        */
+
         
         protected override void Draw(GameTime gameTime)
         {
 
 
-            if ((int) realPosY > GridSquareSize)
+            for (int currentPieceIndex = 0; currentPieceIndex < currentPieces.Length; currentPieceIndex++)
             {
-                realPosY = 0f;
-
-
-                List<Vector2> squares = new List<Vector2>();
-
-                foreach (Rectangle r in currentPiece._r)
+                if ((int)realPositionsY[currentPieceIndex] > GridSquareSize)
                 {
-                    squares.AddRange(Rectangle.RectToSquares(r,GridSquareSize));
-                }
+                    realPositionsY[currentPieceIndex] = 0f;
 
-                List<Vector2> lowestSquares = new List<Vector2>();
 
-                for (int i = 0; i < squares.Count; i++)
-                {
+                    List<Vector2> squares = new List<Vector2>();
 
-                    int index = lowestSquares.FindIndex(v => (int) v.X == (int) squares[i].X);
-
-                    if (index==-1)
+                    foreach (Rectangle r in currentPieces[currentPieceIndex]._r)
                     {
-                        lowestSquares.Add(squares[i]);
+                        squares.AddRange(Rectangle.RectToSquares(r, GridSquareSize));
+                    }
+
+                    List<Vector2> lowestSquares = new List<Vector2>();
+
+                    for (int i = 0; i < squares.Count; i++)
+                    {
+
+                        int index = lowestSquares.FindIndex(v => (int)v.X == (int)squares[i].X);
+
+                        if (index == -1)
+                        {
+                            lowestSquares.Add(squares[i]);
+                        }
+                        else
+                        {
+                            lowestSquares[index] = (lowestSquares[index].Y < squares[i].Y) ? squares[i] : lowestSquares[index];
+                        }
+                    }
+
+                    int minimumMove = GridHeight;
+                    for (int j = 0; j < lowestSquares.Count; j++)
+                    {
+
+                        int highestInLine = GridHeight - 1;
+
+                        for (int k = ((int)(lowestSquares[j].Y + positions[currentPieceIndex][1]) / GridSquareSize); k < GridHeight; k++)
+                        {
+                            int xCheck = (int)(lowestSquares[j].X + positions[currentPieceIndex][0]) / GridSquareSize - 1;
+                            int yCheck = GridWidth * k;
+
+                            if (xCheck + yCheck >= gameGrid.Length)
+                            {
+                                break;
+                            }
+                            if (gameGrid[xCheck + yCheck] != new Color(0, 0, 0, 0))
+                            {
+                                highestInLine = k - 1;
+                                break;
+                            }
+                        }
+
+                        int gridY = (int)lowestSquares[j].Y + positions[currentPieceIndex][1];
+                        gridY /= GridSquareSize;
+
+
+                        minimumMove = Math.Min(minimumMove, highestInLine - gridY);
+
+                    }
+
+                    if (minimumMove > 0)
+                    {
+                        // TODO: position looping again
+                        positions[currentPieceIndex][1] += GridSquareSize;
+                        if (gravityMult > 1f)
+                        {
+                            // play fast_scroll
+                            SE_FastScroll.Play();
+                        }
                     }
                     else
                     {
-                        lowestSquares[index] = (lowestSquares[index].Y < squares[i].Y) ? squares[i] : lowestSquares[index];
-                    }
-                }
-
-                int minimumMove = GridHeight;
-                for (int j = 0; j < lowestSquares.Count; j++)
-                {
-                    
-                    int highestInLine = GridHeight-1;
-
-                    for (int k = ((int)(lowestSquares[j].Y+y_pos)/GridSquareSize); k < GridHeight; k++)
-                    {
-                        int xCheck = (int)(lowestSquares[j].X+x_pos)/GridSquareSize -1;
-                        int yCheck = GridWidth * k;
-
-                        if (xCheck + yCheck >= gameGrid.Length)
+                        foreach (Vector2 square in squares)
                         {
-                            break;
+                            // TODO: position looping again again
+                            gameGrid[((int)((square.X + positions[currentPieceIndex][0]) / GridSquareSize) - 1) + ((((int)((square.Y + positions[currentPieceIndex][1]) / GridSquareSize))) * GridWidth)] = CurrentColorPalette[currentPieces[currentPieceIndex].BlockType];
                         }
-                        if (gameGrid[xCheck+yCheck] != new Color(0,0,0,0))
+
+
+
+                        positions[currentPieceIndex][0] = xSpawnPosition + GridOffsetX;
+                        positions[currentPieceIndex][1] = ySpawnPosition + GridOffsetY;
+
+                        //int next = (int)currentPieces[0].BlockType + 1;
+                        //if (next > 6) next = 0;
+
+                        if (currentPieceIndex == 0)
                         {
-                            highestInLine = k-1;
-                            break;
+                            currentPieces[0] = new Tetromino(_pieces.Dequeue());
+                            _pieces.Enqueue((Tetromino.Type)_r.Next(_tetrominoTypeCount));
                         }
-                    }
 
-                    int gridY = (int) lowestSquares[j].Y + y_pos;
-                    gridY /= GridSquareSize;
-                    
 
-                    minimumMove = Math.Min(minimumMove,highestInLine - gridY);
+                        currentPieces[currentPieceIndex].Update();
+                        
 
-                }
+                        // update display of next pieces
+                        UpdateNextPiecesDisplay();
+                        swapped = false;
+                        UpdateBufferedPiece();
 
-                if (minimumMove>0)
-                {
-                    y_pos += GridSquareSize;
-                    if (gravityMult>1f)
-                    {
-                        // play fast_scroll
-                        SE_FastScroll.Play();
-                    }
-                }
-                else
-                {
-                    foreach (Vector2 square in squares)
-                    {
-                        gameGrid[((int)((square.X+x_pos)/GridSquareSize)-1) + ((((int)((square.Y+y_pos)/GridSquareSize)))*GridWidth)] = CurrentColorPalette[currentPiece.BlockType];
+                        Destroy();
+
+                        // TODO: loop instead of using 0
+                        UpdatePhantom(0);
                     }
 
 
 
-                    x_pos = xSpawnPosition + GridOffsetX;
-                    y_pos = ySpawnPosition + GridOffsetY;
-                    
-                    int next = (int) currentPiece.BlockType + 1;
-                    if (next > 6) next = 0;
-                    
-                    currentPiece = new Tetromino(_pieces.Dequeue());
-                    _pieces.Enqueue((Tetromino.Type)_r.Next(_tetrominoTypeCount));
-                    currentPiece.Update();
 
-
-                    // update display of next pieces
-                    UpdateNextPiecesDisplay();
-                    swapped = false;
-                    UpdateBufferedPiece();
-
-                    Destroy();
-
-                    UpdatePhantom();
                 }
-
-
-
 
             }
             
@@ -767,11 +873,14 @@ namespace MultiplayerTetris
             
             
             _spriteBatch.Begin(SpriteSortMode.Immediate, null, SamplerState.PointWrap, null, null,null, Scale);
-            
-            
-            currentPiece.Draw(x_pos,y_pos, tempGrid);
-            gameTexture2.SetData(tempGrid);
-            gameTexture.SetData(gameGrid);
+
+            for (int i = 0; i < currentPieces.Length; i++)
+            {
+                currentPieces[i].Draw(positions[i][0], positions[i][1], tempGrid);
+                    gameTexture2.SetData(tempGrid);
+                    gameTexture.SetData(gameGrid);
+            }
+
 
 
             _spriteBatch.Draw(gameTexture, 
@@ -810,181 +919,206 @@ namespace MultiplayerTetris
             
 
             base.Draw(gameTime);
-
             
-
-            if (inputHandler.KeyPressed(Keys.LeftShift) && !swapped)
+            if (inputHandler.KeyPressed(_playerControllerManager.GetControl(0, Controls.Hold)) && !swapped)
             {
+
+                // TODO: add n amount of bufferedPieces and loop through
+                //
+                // for (int i = 0; i < currentPieces.Length; i++)
+                //
+
                 swapped = true;
-                Tetromino.Type temp = currentPiece.BlockType;
+                Tetromino.Type temp = currentPieces[0].BlockType;
                 //currentPiece.BlockType = bufferedPiece;
-                currentPiece = new Tetromino(bufferedPiece);
+                currentPieces[0] = new Tetromino(bufferedPiece);
                 bufferedPiece = temp;
-                
-                x_pos = xSpawnPosition + GridOffsetX;
-                y_pos = ySpawnPosition + GridOffsetY;
+
+                // TODO: loop first index
+                positions[0][0] = xSpawnPosition + GridOffsetX;
+                positions[0][1] = ySpawnPosition + GridOffsetY;
                 
                 if (firstBuffer)
                 {
                     firstBuffer = false;
-                    currentPiece = new Tetromino(_pieces.Dequeue());
+                    currentPieces[0] = new Tetromino(_pieces.Dequeue());
                     _pieces.Enqueue((Tetromino.Type)_r.Next(_tetrominoTypeCount));
                 }
                 
                 UpdateBufferedPiece();
 
-                currentPiece.Update();
+                currentPieces[0].Update();
                 UpdateNextPiecesDisplay();
-                UpdatePhantom();
+                // TODO: loop instead of using 0
+                UpdatePhantom(0);
                 
             }
             //swapped = false;
             
 
-            if (inputHandler.KeyPressed(Keys.Right))
+            if (inputHandler.KeyPressed(_playerControllerManager.GetControl(0, Controls.RotateRight)))
             {
 
-                KickResult result = CheckKick(1);
-                if (result.Succeeded)
+                for (int i = 0; i < currentPieces.Length; i++)
                 {
-                    x_pos += (int)(GridSquareSize * result.Result.X);
-                    y_pos += (int)(GridSquareSize * result.Result.Y);
+                    KickResult result = CheckKick(1, i);
+                    if (result.Succeeded)
+                    {
+                        positions[i][0] += (int)(GridSquareSize * result.Result.X);
+                        positions[i][1] += (int)(GridSquareSize * result.Result.Y);
+                    }
                 }
+
                 
-                UpdatePhantom();
+                // TODO: loop instead of using 0
+                UpdatePhantom(0);
                 
             }
-            if (inputHandler.KeyPressed(Keys.Left))
+            if (inputHandler.KeyPressed(_playerControllerManager.GetControl(0, Controls.RotateLeft)))
             {
-                KickResult result = CheckKick(-1);
-                if (result.Succeeded)
+
+                for (int i = 0; i < currentPieces.Length; i++)
                 {
-                    x_pos += (int)(GridSquareSize * result.Result.X);
-                    y_pos += (int)(GridSquareSize * result.Result.Y);
+                    KickResult result = CheckKick(-1, i);
+                    if (result.Succeeded)
+                    {
+                        positions[i][0] += (int)(GridSquareSize * result.Result.X);
+                        positions[i][1] += (int)(GridSquareSize * result.Result.Y);
+                    }
                 }
-                
-                UpdatePhantom();
+
+                // ^+
+                UpdatePhantom(0);
                 
             }
 
-            if (inputHandler.TimedPress(Keys.D,5,15))
+            if (inputHandler.TimedPress(_playerControllerManager.GetControl(0, Controls.MoveRight),5,15))
             {
+
+                for (int currentPieceIndex = 0; currentPieceIndex < currentPieces.Length; currentPieceIndex++)
+                {
+
+                    SE_FastScroll.Play();
+
+                    List<Vector2> squares = new List<Vector2>();
+
+                    foreach (Rectangle r in currentPieces[currentPieceIndex]._r)
+                    {
+                        squares.AddRange(Rectangle.RectToSquares(r, GridSquareSize));
+                    }
+
+                    List<Vector2> lowestSquares = new List<Vector2>();
+
+                    for (int i = 0; i < squares.Count; i++)
+                    {
+
+                        int index = lowestSquares.FindIndex(v => (int)v.Y == (int)squares[i].Y);
+
+                        if (index == -1)
+                        {
+                            lowestSquares.Add(squares[i]);
+                        }
+                        else
+                        {
+                            lowestSquares[index] = (lowestSquares[index].X < squares[i].X) ? squares[i] : lowestSquares[index];
+                        }
+                    }
+
+                    int canMove = 1;
+                    for (int j = 0; j < lowestSquares.Count; j++)
+                    {
+                        int xCheck = (int)(lowestSquares[j].X + positions[currentPieceIndex][0]) / GridSquareSize;
+                        int yCheck = (int)((lowestSquares[j].Y + positions[currentPieceIndex][1]) / GridSquareSize) * GridWidth;
+
+                        if (xCheck + yCheck >= gameGrid.Length)
+                        {
+                            canMove *= 0;
+                            break;
+                        }
+
+                        if (gameGrid[xCheck + yCheck] != new Color(0, 0, 0, 0))
+                        {
+                            canMove *= 0;
+                        }
+
+
+                    }
+
+
+                    positions[currentPieceIndex][0] += GridSquareSize * canMove;
+                    MoveCheck(grid_l, grid_r, currentPieceIndex);
+
+                }
+                
+                // ^+
+                UpdatePhantom(0);
+                
+            }
             
-                SE_FastScroll.Play();
-                
-                List<Vector2> squares = new List<Vector2>();
-
-                foreach (Rectangle r in currentPiece._r)
-                {
-                    squares.AddRange(Rectangle.RectToSquares(r,GridSquareSize));
-                }
-
-                List<Vector2> lowestSquares = new List<Vector2>();
-                
-                for (int i = 0; i < squares.Count; i++)
-                {
-
-                    int index = lowestSquares.FindIndex(v => (int) v.Y == (int) squares[i].Y);
-
-                    if (index==-1)
-                    {
-                        lowestSquares.Add(squares[i]);
-                    }
-                    else
-                    {
-                        lowestSquares[index] = (lowestSquares[index].X < squares[i].X) ? squares[i] : lowestSquares[index];
-                    }
-                }
-                
-                int canMove = 1;
-                for (int j = 0; j < lowestSquares.Count; j++)
-                {
-                    int xCheck = (int)(lowestSquares[j].X + x_pos )/GridSquareSize;
-                    int yCheck = (int)((lowestSquares[j].Y + y_pos )/GridSquareSize) * GridWidth;
-
-                    if (xCheck + yCheck >= gameGrid.Length)
-                    {
-                        canMove *= 0;
-                        break;
-                    }
-                    
-                    if (gameGrid[xCheck + yCheck] != new Color(0, 0, 0, 0))
-                    {
-                        canMove *= 0;
-                    }
-
-                    
-                }
-                
-                
-                x_pos += GridSquareSize*canMove;
-                MoveCheck(grid_l, grid_r);
-                
-                
-                UpdatePhantom();
-                
-            }
-            
-            if (inputHandler.TimedPress(Keys.A,5,15))
+            if (inputHandler.TimedPress(_playerControllerManager.GetControl(0, Controls.MoveLeft),5,15))
             {
-                
-                SE_FastScroll.Play();
-                
-                List<Vector2> squares = new List<Vector2>();
 
-                foreach (Rectangle r in currentPiece._r)
-                {
-                    squares.AddRange(Rectangle.RectToSquares(r,GridSquareSize));
-                }
-
-                List<Vector2> lowestSquares = new List<Vector2>();
-                
-                for (int i = 0; i < squares.Count; i++)
+                for (int currentPieceIndex = 0; currentPieceIndex < currentPieces.Length; currentPieceIndex++)
                 {
 
-                    int index = lowestSquares.FindIndex(v => (int) v.Y == (int) squares[i].Y);
+                    SE_FastScroll.Play();
 
-                    if (index==-1)
+                    List<Vector2> squares = new List<Vector2>();
+
+                    foreach (Rectangle r in currentPieces[0]._r)
                     {
-                        lowestSquares.Add(squares[i]);
+                        squares.AddRange(Rectangle.RectToSquares(r, GridSquareSize));
                     }
-                    else
+
+                    List<Vector2> lowestSquares = new List<Vector2>();
+
+                    for (int i = 0; i < squares.Count; i++)
                     {
-                        lowestSquares[index] = (lowestSquares[index].X > squares[i].X) ? squares[i] : lowestSquares[index];
+
+                        int index = lowestSquares.FindIndex(v => (int)v.Y == (int)squares[i].Y);
+
+                        if (index == -1)
+                        {
+                            lowestSquares.Add(squares[i]);
+                        }
+                        else
+                        {
+                            lowestSquares[index] = (lowestSquares[index].X > squares[i].X) ? squares[i] : lowestSquares[index];
+                        }
                     }
+
+                    int canMove = 1;
+                    for (int j = 0; j < lowestSquares.Count; j++)
+                    {
+                        int xCheck = (int)(lowestSquares[j].X + positions[currentPieceIndex][0]) / GridSquareSize - 2;
+                        int yCheck = (int)((lowestSquares[j].Y + positions[currentPieceIndex][1]) / GridSquareSize) * GridWidth;
+
+
+                        if (xCheck < 0)
+                        {
+                            canMove *= 0;
+                            break;
+                        }
+
+                        if (gameGrid[xCheck + yCheck] != new Color(0, 0, 0, 0))
+                        {
+                            canMove *= 0;
+                        }
+
+
+
+                    }
+
+                    positions[currentPieceIndex][0] -= GridSquareSize * canMove;
+                    MoveCheck(grid_l, grid_r, currentPieceIndex);
                 }
-                
-                int canMove = 1;
-                for (int j = 0; j < lowestSquares.Count; j++)
-                {
-                    int xCheck = (int)(lowestSquares[j].X + x_pos )/GridSquareSize -2;
-                    int yCheck = (int)((lowestSquares[j].Y + y_pos)/GridSquareSize) * GridWidth;
 
-
-                    if (xCheck < 0)
-                    {
-                        canMove *= 0;
-                        break;
-                    }
-                    
-                    if (gameGrid[xCheck + yCheck] != new Color(0, 0, 0, 0))
-                    {
-                        canMove *= 0;
-                    }
-
-
-                    
-                }
-                
-                x_pos -= GridSquareSize * canMove;
-                MoveCheck(grid_l, grid_r);
-                
-                
-                UpdatePhantom();
+                // ^+
+                UpdatePhantom(0);
                 
             }
 
-            if (Keyboard.GetState().IsKeyDown(Keys.W))
+            if (Keyboard.GetState().IsKeyDown(_playerControllerManager.GetControl(0, Controls.SoftDrop)))
             {
                 gravityMult = 10f;
             }
@@ -994,94 +1128,109 @@ namespace MultiplayerTetris
             }
             
             
-            if (inputHandler.KeyPressed(Keys.S))
+            if (inputHandler.KeyPressed(_playerControllerManager.GetControl(0, Controls.HardDrop)))
             {
-                SE_PlaceBlock.Play();
-                List<Vector2> squares = new List<Vector2>();
 
-                foreach (Rectangle r in currentPiece._r)
-                {
-                    squares.AddRange(Rectangle.RectToSquares(r,GridSquareSize));
-                }
-
-                List<Vector2> lowestSquares = new List<Vector2>();
-
-                for (int i = 0; i < squares.Count; i++)
+                for (int currentPieceIndex = 0; currentPieceIndex < currentPieces.Length; currentPieceIndex++)
                 {
 
-                    int index = lowestSquares.FindIndex(v => (int) v.X == (int) squares[i].X);
+                    SE_PlaceBlock.Play();
+                    List<Vector2> squares = new List<Vector2>();
 
-                    if (index==-1)
+                    foreach (Rectangle r in currentPieces[currentPieceIndex]._r)
                     {
-                        lowestSquares.Add(squares[i]);
+                        squares.AddRange(Rectangle.RectToSquares(r, GridSquareSize));
                     }
-                    else
+
+                    List<Vector2> lowestSquares = new List<Vector2>();
+
+                    for (int i = 0; i < squares.Count; i++)
                     {
-                        lowestSquares[index] = (lowestSquares[index].Y < squares[i].Y) ? squares[i] : lowestSquares[index];
-                    }
-                }
 
-                int minimumMove = GridHeight;
-                for (int j = 0; j < lowestSquares.Count; j++)
-                {
-                    
-                    int highestInLine = GridHeight-1;
+                        int index = lowestSquares.FindIndex(v => (int)v.X == (int)squares[i].X);
 
-                    for (int k = ((int)(lowestSquares[j].Y+y_pos)/GridSquareSize); k < GridHeight; k++)
-                    {
-                        int xCheck = (int)(lowestSquares[j].X+x_pos)/GridSquareSize -1;
-                        int yCheck = GridWidth * k;
-                        
-
-                        if (gameGrid[xCheck+yCheck] != new Color(0,0,0,0))
+                        if (index == -1)
                         {
-                            highestInLine = k-1;
-                            break;
+                            lowestSquares.Add(squares[i]);
+                        }
+                        else
+                        {
+                            lowestSquares[index] = (lowestSquares[index].Y < squares[i].Y) ? squares[i] : lowestSquares[index];
                         }
                     }
 
-                    int gridY = (int) lowestSquares[j].Y + y_pos;
-                    gridY /= GridSquareSize;
-                    
+                    int minimumMove = GridHeight;
+                    for (int j = 0; j < lowestSquares.Count; j++)
+                    {
 
-                    minimumMove = Math.Min(minimumMove,highestInLine - gridY);
+                        int highestInLine = GridHeight - 1;
+
+                        for (int k = ((int)(lowestSquares[j].Y + positions[currentPieceIndex][1]) / GridSquareSize); k < GridHeight; k++)
+                        {
+                            int xCheck = (int)(lowestSquares[j].X + positions[currentPieceIndex][0]) / GridSquareSize - 1;
+                            int yCheck = GridWidth * k;
+
+
+                            if (gameGrid[xCheck + yCheck] != new Color(0, 0, 0, 0))
+                            {
+                                highestInLine = k - 1;
+                                break;
+                            }
+                        }
+
+                        int gridY = (int)lowestSquares[j].Y + positions[currentPieceIndex][1];
+                        gridY /= GridSquareSize;
+
+
+                        minimumMove = Math.Min(minimumMove, highestInLine - gridY);
+
+                    }
+
+
+                    positions[currentPieceIndex][1] += GridSquareSize * minimumMove;
+
+
+                    foreach (Vector2 square in squares)
+                    {
+                        gameGrid[((int)((square.X + positions[currentPieceIndex][0]) / GridSquareSize) - 1) + ((((int)((square.Y + positions[currentPieceIndex][1]) / GridSquareSize))) * GridWidth)] = CurrentColorPalette[currentPieces[currentPieceIndex].BlockType];
+                    }
+
+
+
+                    positions[currentPieceIndex][0] = xSpawnPosition + GridOffsetX + xSpawnOffset*currentPieceIndex;
+                    positions[currentPieceIndex][1] = ySpawnPosition + GridOffsetY;
+
+                    //int next = (int)currentPieces[0].BlockType + 1;
+                    //if (next > 6) next = 0;
+
+                    if (currentPieceIndex == 0)
+                    {
+                        // TODO: multiple "next pieces" - 1 per player
+                        currentPieces[0] = new Tetromino(_pieces.Dequeue());
+                        _pieces.Enqueue((Tetromino.Type)_r.Next(_tetrominoTypeCount));
+                    }
+
+                    currentPieces[currentPieceIndex].Update();
+
+                    // update display of next pieces
+                    UpdateNextPiecesDisplay();
+
+                    swapped = false;
+                    UpdateBufferedPiece();
+
+                    Destroy();
 
                 }
 
-
-                y_pos += GridSquareSize * minimumMove;
-
-
-                foreach (Vector2 square in squares)
-                {
-                    gameGrid[((int)((square.X+x_pos)/GridSquareSize)-1) + ((((int)((square.Y+y_pos)/GridSquareSize)))*GridWidth)] = CurrentColorPalette[currentPiece.BlockType];
-                }
-
-
-
-                x_pos = xSpawnPosition + GridOffsetX;
-                y_pos = ySpawnPosition + GridOffsetY;
-                
-                int next = (int) currentPiece.BlockType + 1;
-                if (next > 6) next = 0;
-                
-                currentPiece = new Tetromino(_pieces.Dequeue());
-                _pieces.Enqueue((Tetromino.Type)_r.Next(_tetrominoTypeCount));
-                currentPiece.Update();
-
-                // update display of next pieces
-                UpdateNextPiecesDisplay();
-                
-                swapped = false;
-                UpdateBufferedPiece();
-
-                Destroy();
-                
-                UpdatePhantom();
+                // ^+
+                UpdatePhantom(0);
             }
 
-                
-            realPosY+=gravity*gravityMult;
+            for (int i = 0; i < numPlayers; i++)
+            {
+                realPositionsY[i] += gravity * gravityMult;
+            }
+            
             
         }
     }
