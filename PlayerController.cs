@@ -42,7 +42,21 @@ namespace MultiplayerTetris
                 { Controls.SoftDrop, Keys.I },
                 { Controls.HardDrop, Keys.K },
                 { Controls.Hold, Keys.NumPad5 }
+            },
+            
+            
+            
+            new Dictionary<Controls, Keys>()
+            {
+                { Controls.MoveRight, Keys.F },
+                { Controls.MoveLeft, Keys.H },
+                { Controls.RotateRight, Keys.OemPeriod },
+                { Controls.RotateLeft, Keys.OemComma },
+                { Controls.SoftDrop, Keys.T },
+                { Controls.HardDrop, Keys.G },
+                { Controls.Hold, Keys.Space }
             }
+            
         };
     }
 
@@ -54,6 +68,7 @@ namespace MultiplayerTetris
         
         public Keys GetControl(int playerIndex, Controls control)
         {
+            
             return _playerControllers[playerIndex].PlayerControls[control];
         }
         
@@ -66,11 +81,14 @@ namespace MultiplayerTetris
         {
             if (!File.Exists(ControlsFile))
             {
-                PlayerController[] playerControllers =
+
+                PlayerController[] playerControllers = new PlayerController[DefaultControls.Defaults.Length];
+                
+                for (int i = 0; i < DefaultControls.Defaults.Length; i++)
                 {
-                    new PlayerController(0),
-                    new PlayerController(1),
-                };
+                    playerControllers[i] = new PlayerController(i);
+                }
+                
 
                 SerializedPlayerControllers toSerialize = new SerializedPlayerControllers(playerControllers);
                 
