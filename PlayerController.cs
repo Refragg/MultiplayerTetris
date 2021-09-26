@@ -103,8 +103,19 @@ namespace MultiplayerTetris
             {
                 JObject jsonObj = (JObject)JToken.ReadFrom(treader);
                 //jsonObj.Value<string>("Version"); //PlayerController file version
-                    
-                _playerControllers = jsonObj["Controllers"].ToObject<PlayerController[]>();
+                
+                PlayerController[] playerControllersUnordered = jsonObj["Controllers"].ToObject<PlayerController[]>();
+
+                //ordering the array based on the PlayerIndex field
+                int unorderedArrayLength = playerControllersUnordered.Length;
+
+                _playerControllers = new PlayerController[unorderedArrayLength];
+                for (int i = 0; i < unorderedArrayLength; i++)
+                {
+                    int playerIndex = playerControllersUnordered[i].PlayerIndex;
+
+                    _playerControllers[playerIndex] = playerControllersUnordered[i];
+                }
             }
         }
     }
