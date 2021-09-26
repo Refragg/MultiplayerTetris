@@ -24,37 +24,37 @@ namespace MultiplayerTetris
         {
             new Dictionary<Controls, Keys>()
             {
-                { Controls.MoveRight, Keys.D },
-                { Controls.MoveLeft, Keys.A },
-                { Controls.RotateRight, Keys.Right },
-                { Controls.RotateLeft, Keys.Left },
-                { Controls.SoftDrop, Keys.W },
-                { Controls.HardDrop, Keys.S },
-                { Controls.Hold, Keys.LeftShift }
+                { Controls.MoveRight, (Keys)102 },
+                { Controls.MoveLeft, (Keys)100 },
+                { Controls.RotateRight, (Keys)80 },
+                { Controls.RotateLeft, (Keys)79 },
+                { Controls.SoftDrop, (Keys)73 },
+                { Controls.HardDrop, (Keys)101 },
+                { Controls.Hold, (Keys)161 }
             },
             
             new Dictionary<Controls, Keys>()
             {
-                { Controls.MoveRight, Keys.L },
-                { Controls.MoveLeft, Keys.J },
-                { Controls.RotateRight, Keys.NumPad6 },
-                { Controls.RotateLeft, Keys.NumPad4 },
-                { Controls.SoftDrop, Keys.I },
-                { Controls.HardDrop, Keys.K },
-                { Controls.Hold, Keys.NumPad5 }
+                { Controls.MoveRight, (Keys)39 },
+                { Controls.MoveLeft, (Keys)37 },
+                { Controls.RotateRight, (Keys)38 },
+                { Controls.RotateLeft, (Keys)189 },
+                { Controls.SoftDrop, (Keys)40 },
+                { Controls.HardDrop, (Keys)32 },
+                { Controls.Hold, (Keys)67 }
             },
             
             
             
             new Dictionary<Controls, Keys>()
             {
-                { Controls.MoveRight, Keys.F },
-                { Controls.MoveLeft, Keys.H },
-                { Controls.RotateRight, Keys.OemPeriod },
-                { Controls.RotateLeft, Keys.OemComma },
-                { Controls.SoftDrop, Keys.T },
-                { Controls.HardDrop, Keys.G },
-                { Controls.Hold, Keys.Space }
+                { Controls.MoveRight, (Keys)68 },
+                { Controls.MoveLeft, (Keys)65 },
+                { Controls.RotateRight, (Keys)190 },
+                { Controls.RotateLeft, (Keys)188 },
+                { Controls.SoftDrop, (Keys)87 },
+                { Controls.HardDrop, (Keys)83 },
+                { Controls.Hold, (Keys)160 }
             }
             
         };

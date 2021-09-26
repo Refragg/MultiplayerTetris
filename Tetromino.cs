@@ -190,6 +190,7 @@ namespace MultiplayerTetris
 
         public void Draw(int x, int y, Color[] grid)
         {
+            
 
             //Rectangle.Draw(r.X+x,r.Y+y,r.Width,r.Height, Colour, _spriteBatch, _graphics);
             
@@ -202,7 +203,22 @@ namespace MultiplayerTetris
             
             foreach (Vector2 square in squares)
             {
-                grid[((int)((x + square.X)/Tetromino.SquareSize)-1) + (((int)((y + square.Y)/Tetromino.SquareSize))*Game1.GridWidth)] = Game1.CurrentColorPalette[BlockType];
+
+                int _x = (int) ((x + square.X) / Tetromino.SquareSize) - 1;
+                int _y = (int) ((y + square.Y) / Tetromino.SquareSize);
+
+                int index = _x + _y * Game1.GridWidth;
+
+                if (!(_x<0 || _y<0 || _x >= Game1.GridWidth || _y >= Game1.GridHeight))
+                {
+                    grid[index] = Game1.CurrentColorPalette[BlockType];
+                }
+                
+                
+                
+
+                
+                
             }
                 
             

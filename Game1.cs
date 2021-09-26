@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -29,18 +30,20 @@ namespace MultiplayerTetris
         
         #region User Defined
 
-        private const int ScreenWidth = 650;
+        private const int ScreenWidth = 1000;
         private const int ScreenHeight = 800;
 
-        public const int GridSquareSize = 14;
+        public const int GridSquareSize = 24;
 
-        private const int GridHeight = 24;
+        public const int GridHeight = 24;
 
         private const int NextPiecesAmount = 5;
 
-        private const int NumPlayers = 3;
+        private const int NumPlayers = 2;
         
         private const bool BlockDisplayMode = false;
+
+        private const bool PushUp = false;
 
         #endregion
 
@@ -106,6 +109,8 @@ namespace MultiplayerTetris
         
         #region Needs Initializing
         
+        private Color[] phantomColours;
+        
         private Color[] backgroundGrid;
         private Texture2D backgroundTexture;
 
@@ -127,6 +132,11 @@ namespace MultiplayerTetris
         private SoundEffect sePlaceBlock;
         private SoundEffect seClearRow;
         private SoundEffect seFastScroll;
+        private SoundEffect sePerfect;
+
+        private AudioManager audioManager;
+        private AudioEmitter audioEmitter;
+        private Vector3 soundPosition;
         
         #endregion
 
@@ -179,6 +189,23 @@ namespace MultiplayerTetris
             // initialisation
             scale = Matrix.CreateScale(new Vector3(GridSquareSize, GridSquareSize, 1));
             random = new Random();
+
+
+            phantomColours = new Color[]
+            {
+                new Color(130,106,155,100),
+                new Color(106,155,130,100)
+            };
+            
+            
+            
+            // 3D audio stuff
+            audioManager = new AudioManager(this);
+            Components.Add(audioManager);
+            audioEmitter = new AudioEmitter();
+            soundPosition = Vector3.Zero;
+            
+            
             
             // texture setup
             gameTexture = new Texture2D(graphics.GraphicsDevice, GridWidth, GridHeight);
@@ -258,41 +285,58 @@ namespace MultiplayerTetris
             backgroundGrid = new Color[screenGridWidth*screenGridHeight];
             backgroundTexture = new Texture2D(graphics.GraphicsDevice,screenGridWidth,screenGridHeight);
 
-            int xOffset = BufferedPieceX + DisplayOffsetX - GridSquareSize;
-            int yOffset = BufferedPieceY + DisplayOffsetY - GridSquareSize;
 
-            xOffset /= GridSquareSize;
-            yOffset /= GridSquareSize;
-
-            for (int i = 0; i < 6; i++)
+            int xOffset;
+            int yOffset;
+            
+            for (int multI = 1; multI < 2; multI++)
             {
-                for (int j = 0; j < 5; j++)
-                {
-                    if (!((i == 0 && j == 0) || (i == 5 && j == 4) || (i == 5 && j == 0) || (i == 0 && j == 4)))
-                    {
-                        backgroundGrid[(xOffset + i) + (yOffset + j)*screenGridWidth] = (i>0 && i<5 && j>0 && j<4)?new Color(30,30,30):new Color(50,50,50);
-                    }
+                            
+                xOffset = (multI*BufferedPieceX) + DisplayOffsetX - GridSquareSize - GridSquareSize*2*(multI-1);
+                yOffset = BufferedPieceY + DisplayOffsetY - GridSquareSize;
 
-                }
-            }
-            
-            xOffset = NextPiecesX + DisplayOffsetX - GridSquareSize;
-            yOffset = NextPiecesY + DisplayOffsetY - GridSquareSize;
-            
-            xOffset /= GridSquareSize;
-            yOffset /= GridSquareSize;
-            
-            for (int i = 0; i < 6; i++)
-            {
-                for (int j = 0; j < 5* NextPiecesAmount +1; j++)
-                {
-                    if (!((i == 0 && j == 0) || (i == 5 && j == 25) || (i == 5 && j == 0) || (i == 0 && j == 25)))
-                    {
-                        backgroundGrid[(xOffset + i) + (yOffset + j)*screenGridWidth] = (i>0 && i<5 && j>0 && j%5!=0)?new Color(30,30,30):new Color(50,50,50);
-                    }
+                xOffset /= GridSquareSize;
+                yOffset /= GridSquareSize;
 
+                for (int i = 0; i < 6; i++)
+                {
+                    for (int j = 0; j < 5; j++)
+                    {
+                        if (!((i == 0 && j == 0) || (i == 5 && j == 4) || (i == 5 && j == 0) || (i == 0 && j == 4)))
+                        {
+                            backgroundGrid[(xOffset + i) + (yOffset + j)*screenGridWidth] = (i>0 && i<5 && j>0 && j<4)?new Color(30,30,30):new Color(50,50,50);
+                        }
+
+                    }
                 }
+                
+                
+                
+                xOffset = NextPiecesX + DisplayOffsetX - GridSquareSize + 7*GridSquareSize*(multI-1);
+                yOffset = NextPiecesY + DisplayOffsetY - GridSquareSize;
+            
+                xOffset /= GridSquareSize;
+                yOffset /= GridSquareSize;
+            
+                for (int i = 0; i < 6; i++)
+                {
+                    for (int j = 0; j < 5* NextPiecesAmount +1; j++)
+                    {
+                        if (!((i == 0 && j == 0) || (i == 5 && j == 25) || (i == 5 && j == 0) || (i == 0 && j == 25)))
+                        {
+                            backgroundGrid[(xOffset + i) + (yOffset + j)*screenGridWidth] = (i>0 && i<5 && j>0 && j%5!=0)?new Color(30,30,30):new Color(50,50,50);
+                        }
+
+                    }
+                }
+                
+                
+                
             }
+
+
+
+            
             
             
             backgroundTexture.SetData(backgroundGrid);
@@ -311,6 +355,7 @@ namespace MultiplayerTetris
             sePlaceBlock = SoundEffect.FromFile(Path.Combine("Content", "se", "place_block.wav"));
             seClearRow = SoundEffect.FromFile(Path.Combine("Content", "se", "clear_row.wav"));
             seFastScroll = SoundEffect.FromFile(Path.Combine("Content", "se", "fast_scroll.wav"));
+            sePerfect = SoundEffect.FromFile(Path.Combine("Content", "se", "perfect.wav"));
             
             #endregion
             
@@ -326,9 +371,9 @@ namespace MultiplayerTetris
 
         #region Tetris Functions
 
-        private int MinimumMove(List<Vector2> squares, int currentPieceIndex)
+        private List<Vector2> LowestSquares(List<Vector2> squares)
         {
-            // the lowest y value of the current tetromino for each column of squares
+            
             List<Vector2> lowestSquares = new List<Vector2>();
             
             // loop through all squares
@@ -349,6 +394,27 @@ namespace MultiplayerTetris
                 }
             }
 
+            return lowestSquares;
+
+
+        }
+        
+        private int MinimumMove(List<Vector2> squares, int currentPieceIndex, bool usesLowest)
+        {
+            // the lowest y value of the current tetromino for each column of squares
+
+            List<Vector2> lowestSquares;
+            
+            if (usesLowest)
+            {
+                lowestSquares = new List<Vector2>(squares);
+            }
+            else
+            {
+                lowestSquares = LowestSquares(squares);
+            }
+            
+
             int minimumMove = GridHeight;
             for (int j = 0; j < lowestSquares.Count; j++)
             {
@@ -361,7 +427,7 @@ namespace MultiplayerTetris
                     int yCheck = GridWidth * k;
                     
                     // if out of bounds
-                    if (xCheck + yCheck >= gameGrid.Length)
+                    if (xCheck < 0 || xCheck >= GridWidth || yCheck < 0 || yCheck >= GridWidth*GridHeight)
                     {
                         break;
                     }
@@ -461,11 +527,11 @@ namespace MultiplayerTetris
                 foreach (Vector2 sq in rotatedSquares)
                 {
                     int xCheck = (int) ((sq.X + positions[currentPieceIndex][0]) / GridSquareSize + transform.X) -1;
-                    int yCheck = (int) ((sq.Y + positions[currentPieceIndex][0]) / GridSquareSize + transform.Y);
+                    int yCheck = (int) ((sq.Y + positions[currentPieceIndex][1]) / GridSquareSize + transform.Y);
                     yCheck *= GridWidth;
                     
                     
-                    if (xCheck>GridWidth-1 || xCheck<0 || yCheck<0 || yCheck>GridWidth*(GridHeight-1))
+                    if (xCheck>=GridWidth || xCheck<0 || yCheck<0 || yCheck>=GridWidth*GridHeight)
                     {
                         possible = false;
                         break;
@@ -476,10 +542,12 @@ namespace MultiplayerTetris
                         possible = false;
                         break;
                     }
-                    
+
+
                 }
 
-                if (possible){
+                if (possible)
+                {
                     return new KickResult(true, transform);
                 }
                 
@@ -527,6 +595,8 @@ namespace MultiplayerTetris
 
                 if (downwards != 0)
                 {
+
+                    int rows_cleared = downwards;
                 
                     Color[] newGrid = new Color[GridWidth*GridHeight];
                     gameGrid.CopyTo(newGrid,0);
@@ -549,8 +619,16 @@ namespace MultiplayerTetris
                 
                     newGrid.CopyTo(gameGrid,0);
 
-                    // play clear_row
-                    seClearRow.Play();
+                    if (rows_cleared < 4)
+                    {
+                        // play clear_row
+                        seClearRow.Play();
+                    }
+                    else
+                    {
+                        // tetris :000000000000000000!!!!! no way omg look how cool
+                        sePerfect.Play();
+                    }
 
                 }
             
@@ -574,7 +652,16 @@ namespace MultiplayerTetris
                 int x = (int) (square.X / GridSquareSize);
                 int y = (int) (square.Y / GridSquareSize);
 
-                phantomDropGrids[currentPieceIndex][x + y * 4] = new Color(120,120,120,100);
+                Color currentColour;// = new Color(120, 120, 120, 100);
+                if (currentPieceIndex < phantomColours.Length)
+                {
+                    currentColour = phantomColours[currentPieceIndex];
+                }
+                else
+                {
+                    currentColour = new Color(120, 120, 120, 100);
+                }
+                phantomDropGrids[currentPieceIndex][x + y * 4] = currentColour;
 
             }
                 
@@ -582,7 +669,7 @@ namespace MultiplayerTetris
 
             phantomPositions[currentPieceIndex].X = positions[currentPieceIndex][0];
 
-            int minimumMove = MinimumMove(squares,currentPieceIndex);
+            int minimumMove = MinimumMove(squares,currentPieceIndex,false);
 
             minimumMove++;
             phantomPositions[currentPieceIndex].Y = positions[currentPieceIndex][1] + minimumMove * GridSquareSize;
@@ -678,6 +765,21 @@ namespace MultiplayerTetris
 
             nextPiecesTextures[currentPieceIndex].SetData(nextPiecesGrids[currentPieceIndex]);
         }
+
+        private Vector3 GetAudioPosition(int currentPieceIndex)
+        {
+            double angle = ((double) positions[currentPieceIndex][0]) / ((double) GridWidth*GridSquareSize);
+
+            angle *= 0.7;
+            angle += 0.15;
+            angle *= Math.PI;
+            
+            float dx = (float)-Math.Cos(angle);
+            float dz = (float)-Math.Sin(angle);
+            
+            return new Vector3(dx, 0, dz) * 10;
+
+        }
         
         #endregion
 
@@ -685,6 +787,7 @@ namespace MultiplayerTetris
 
         protected override void Update(GameTime gameTime)
         {
+
             // quit
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
                 Exit();
@@ -709,7 +812,7 @@ namespace MultiplayerTetris
                     }
                     
                     // find minimum movement downwards until placement
-                    int minimumMove = MinimumMove(squares,currentPieceIndex);
+                    int minimumMove = MinimumMove(squares,currentPieceIndex,false);
 
                     if (minimumMove > 0)
                     {
@@ -718,7 +821,11 @@ namespace MultiplayerTetris
                         if (gravityMultipliers[currentPieceIndex] > 1f)
                         {
                             // play fast_scroll
-                            seFastScroll.Play();
+                            //seFastScroll.Play();
+
+                            soundPosition = GetAudioPosition(currentPieceIndex);
+                            audioEmitter.Update(soundPosition);
+                            audioManager.Play3DSound(seFastScroll,false,audioEmitter);
                         }
                     }
                     else
@@ -748,6 +855,87 @@ namespace MultiplayerTetris
 
                         Destroy();
                         
+                        
+                        
+                            
+
+
+                        for (int player = 0; player < NumPlayers; player++)
+                        {
+
+                            List<Vector2> currentSquares = new List<Vector2>();
+                            
+                            foreach (Rectangle r in currentPieces[player]._r)
+                            {
+                                currentSquares.AddRange(Rectangle.RectToSquares(r, GridSquareSize));
+                            }
+                            
+                            foreach (Vector2 square in currentSquares)
+                            {
+
+                                int push = 0;
+
+                                while (true)
+                                {
+                                    int xCheck = (int) (square.X + positions[player][0]) / GridSquareSize;
+                                    int yCheck = (int) (square.Y + positions[player][1]) / GridSquareSize;
+                                    yCheck -= push;
+                                    xCheck -= 1;
+                                    Debug.WriteLine("push " + push + " " + xCheck + " " + yCheck + " " + square.X +
+                                                    " " + square.Y + " " + positions[player][0] + " " +
+                                                    positions[player][1]);
+
+                                    yCheck *= GridWidth;
+
+
+                                    // if player stuck inside placed piece...
+
+                                    if (gameGrid[xCheck + yCheck] != new Color(0, 0, 0, 0))
+                                    {
+                                        // push up until no longer stuck
+                                        push++;
+
+                                        if (!PushUp)
+                                        {
+                                            break;
+                                        }
+                                        
+                                    }
+                                    else
+                                    {
+                                        break;
+                                    }
+                                }
+
+
+
+                                if (push != 0)
+                                {
+
+                                    if (PushUp)
+                                    {
+                                        // if piece needs to be pushed up
+
+                                        // push piece up
+                                        positions[player][1] -= (push + 2) * GridSquareSize;
+                                    }
+                                    else
+                                    {
+                                        positions[player][0] = XSpawnPosition + GridOffsetX +
+                                                               XSpawnOffset * player;
+                                        positions[player][1] = YSpawnPosition + GridOffsetY;
+                                    }
+
+                                }
+                            }
+                        }
+
+
+
+
+
+
+
                         // update all phantoms
                         for (int it = 0; it < NumPlayers; it++) { UpdatePhantom(it); }
                         
@@ -788,7 +976,10 @@ namespace MultiplayerTetris
 
                 if (inputHandler.TimedPress(playerControllerManager.GetControl(currentPieceIndex, Controls.MoveRight),5,15))
                 {
-                    seFastScroll.Play();
+                    //seFastScroll.Play();
+                    soundPosition = GetAudioPosition(currentPieceIndex);
+                    audioEmitter.Update(soundPosition);
+                    audioManager.Play3DSound(seFastScroll,false,audioEmitter);
                     
                     // split current tetromino into squares
                     List<Vector2> squares = new List<Vector2>();
@@ -828,7 +1019,7 @@ namespace MultiplayerTetris
                         int yCheck = (int)((rightMostSquares[j].Y + positions[currentPieceIndex][1]) / GridSquareSize) * GridWidth;
                         
                         // if out of bounds
-                        if (xCheck + yCheck >= gameGrid.Length)
+                        if (xCheck >= GridWidth || yCheck >= GridHeight*GridWidth || xCheck < 0 || yCheck < 0)
                         {
                             canMove *= 0;
                             break;
@@ -856,7 +1047,10 @@ namespace MultiplayerTetris
 
                 if (inputHandler.TimedPress(playerControllerManager.GetControl(currentPieceIndex, Controls.MoveLeft),5,15))
                 {
-                    seFastScroll.Play();
+                    //seFastScroll.Play();
+                    soundPosition = GetAudioPosition(currentPieceIndex);
+                    audioEmitter.Update(soundPosition);
+                    audioManager.Play3DSound(seFastScroll,false,audioEmitter);
                     
                     // split current tetromino into squares
                     List<Vector2> squares = new List<Vector2>();
@@ -896,17 +1090,19 @@ namespace MultiplayerTetris
                         int yCheck = (int)((leftMostSquares[j].Y + positions[currentPieceIndex][1]) / GridSquareSize) * GridWidth;
 
                         // if out of bounds
-                        if (xCheck < 0)
-                        {
-                            canMove *= 0;
-                            break;
-                        }
-                        
-                        // if this square is filled in
-                        if (gameGrid[xCheck + yCheck] != new Color(0, 0, 0, 0))
+                        if (xCheck + yCheck >= gameGrid.Length || xCheck + yCheck < 0)
                         {
                             canMove *= 0;
                         }
+                        else
+                        {
+                            // if this square is filled in
+                            if (gameGrid[xCheck + yCheck] != new Color(0, 0, 0, 0))
+                            {
+                                canMove *= 0;
+                            }
+                        }
+
 
 
 
@@ -927,10 +1123,12 @@ namespace MultiplayerTetris
                 #endregion
                 
                 
+                
                 #region Extra Inputs
                 
                 if (inputHandler.KeyPressed(playerControllerManager.GetControl(currentPieceIndex, Controls.Hold)) && !swapped[currentPieceIndex])
                 {
+
                     // limit swaps per go to 1
                     swapped[currentPieceIndex] = true;
                     
@@ -978,40 +1176,184 @@ namespace MultiplayerTetris
                     // play placement sound effect
                     sePlaceBlock.Play();
 
-                    // split tetromino into squares
-                    List<Vector2> squares = new List<Vector2>();
-                    foreach (Rectangle r in currentPieces[currentPieceIndex]._r)
+                    int[] minimumMoves = new int[NumPlayers];
+                    List<Vector2>[] eachLowestSquares = new List<Vector2>[NumPlayers];
+                    List<Vector2>[] eachSquares = new List<Vector2>[NumPlayers];
+
+                    for (int i = 0; i < NumPlayers; i++)
                     {
-                        squares.AddRange(Rectangle.RectToSquares(r, GridSquareSize));
+                        // split tetromino into squares
+                        eachSquares[i] = new List<Vector2>();
+                        foreach (Rectangle r in currentPieces[i]._r)
+                        {
+                            eachSquares[i].AddRange(Rectangle.RectToSquares(r, GridSquareSize));
+                        }
+
+                        eachLowestSquares[i] = LowestSquares(eachSquares[i]);
+                    
+                        // find amount to move current piece downwards to place it
+                        minimumMoves[i] = MinimumMove(eachLowestSquares[i],i,true);
+                        
+                        
+                        
                     }
                     
-                    // find amount to move current piece downwards to place it
-                    int minimumMove = MinimumMove(squares,currentPieceIndex);
                     
-                    // move piece
-                    positions[currentPieceIndex][1] += GridSquareSize * minimumMove;
-
-                    // set pixels on grid
-                    foreach (Vector2 square in squares)
+                    // the players to force to hard drop
+                    List<int> forceHardDrop = new List<int>();
+                    
+                    
+                    for (int i = 0; i < NumPlayers; i++)
                     {
-                        gameGrid[((int)((square.X + positions[currentPieceIndex][0]) / GridSquareSize) - 1) + ((((int)((square.Y + positions[currentPieceIndex][1]) / GridSquareSize))) * GridWidth)] = CurrentColorPalette[currentPieces[currentPieceIndex].BlockType];
+                        if (minimumMoves[i] == 0)
+                        {
+                            if (i == currentPieceIndex)
+                            {
+                                continue;
+                            }
+                            foreach (Vector2 square in eachLowestSquares[currentPieceIndex])
+                            {
+   
+                                List<Vector2> otherSquares = eachLowestSquares[i];
+
+                                foreach (Vector2 otherSquare in otherSquares)
+                                {
+                                    
+                                    
+                                    if (Math.Abs((positions[i][0]+otherSquare.X) - (positions[currentPieceIndex][0]+square.X)) < 0.01f)
+                                    {
+                                        if (!forceHardDrop.Contains(i))
+                                        {
+                                            forceHardDrop.Add(i);
+                                        }
+
+                                    }
+                                }
+                            }
+                        }
                     }
 
-                    // go to spawn pos
-                    positions[currentPieceIndex][0] = XSpawnPosition + GridOffsetX + XSpawnOffset*currentPieceIndex;
-                    positions[currentPieceIndex][1] = YSpawnPosition + GridOffsetY;
 
-                    // change piece type
-                    currentPieces[currentPieceIndex] = new Tetromino(pieceQueues[currentPieceIndex].Dequeue());
-                    pieceQueues[currentPieceIndex].Enqueue((Tetromino.Type)random.Next(TetrominoTypeCount));
-                    
-                    currentPieces[currentPieceIndex].Update();
+                    forceHardDrop.Add(currentPieceIndex);
 
-                    // update display of next and buffer pieces
-                    UpdateNextPiecesDisplay(currentPieceIndex);
-                    swapped[currentPieceIndex] = false;
-                    UpdateBufferedPiece(currentPieceIndex);
+                    foreach (int index in forceHardDrop)
+                    {
+
+                        // move piece
+                        positions[index][1] += GridSquareSize * minimumMoves[index];
+
+                        // set pixels on grid
+                        foreach (Vector2 square in eachSquares[index])
+                        {
+                            gameGrid[((int)((square.X + positions[index][0]) / GridSquareSize) - 1) + ((((int)((square.Y + positions[index][1]) / GridSquareSize))) * GridWidth)] = CurrentColorPalette[currentPieces[index].BlockType];
+                        }
+
+                        // go to spawn pos
+                        positions[index][0] = XSpawnPosition + GridOffsetX + XSpawnOffset*index;
+                        positions[index][1] = YSpawnPosition + GridOffsetY;
+
+                        // change piece type
+                        currentPieces[index] = new Tetromino(pieceQueues[index].Dequeue());
+                        pieceQueues[index].Enqueue((Tetromino.Type)random.Next(TetrominoTypeCount));
                     
+                        currentPieces[index].Update();
+
+                        // update display of next and buffer pieces
+                        UpdateNextPiecesDisplay(index);
+                        swapped[index] = false;
+                        UpdateBufferedPiece(index);
+                        
+                        
+                        // if there's more than 1 piece to force to drop
+                        if (forceHardDrop.Count > 1)
+                        {
+                            // recalculate taking into account new drops
+                            minimumMoves[currentPieceIndex] = MinimumMove(eachLowestSquares[currentPieceIndex],currentPieceIndex,true);
+                        }
+
+                    }
+                    
+                    
+                    
+                    for (int player = 0; player<NumPlayers; player++)
+                    {
+
+                        if (player == currentPieceIndex)
+                        {
+                            continue;
+                        }
+                        
+                        // loop through all other players
+
+                        
+                        
+                        foreach (Vector2 square in eachSquares[player])
+                        {
+                            
+                            int push = 0;
+                            
+                            while (true)
+                            {
+                                int xCheck = (int) (square.X+positions[player][0]) / GridSquareSize;
+                                int yCheck = (int) (square.Y+positions[player][1]) / GridSquareSize;
+                                yCheck -= push;
+                                xCheck -= 1;
+                                Debug.WriteLine("push "+push+" "+xCheck+" "+yCheck+" "+square.X+" "+square.Y+" "+positions[player][0]+" "+positions[player][1]);
+                                
+                                yCheck *= GridWidth;
+
+                                
+                                // if player stuck inside other player...
+                                
+                                if (gameGrid[xCheck+yCheck] != new Color(0,0,0,0))
+                                {
+                                    // push up until no longer stuck
+                                    push++;
+
+                                    if (!PushUp)
+                                    {
+                                        break;
+                                    }
+                                    
+                                }
+                                else
+                                {
+                                    break;
+                                }
+                            }
+                            
+                            
+                            if (push != 0)
+                            {
+
+                                if (PushUp)
+                                {
+                                    // if piece needs to be pushed up
+
+                                    // push piece up
+                                    positions[player][1] -= (push + 2) * GridSquareSize;
+                                }
+                                else
+                                {
+                                    positions[player][0] = XSpawnPosition + GridOffsetX +
+                                                           XSpawnOffset * player;
+                                    positions[player][1] = YSpawnPosition + GridOffsetY;
+                                }
+
+                            }
+
+                            
+                        }
+
+                        
+
+                        
+                        
+                    }
+                    
+                    
+                    
+
                     // check if finished row
                     Destroy();
                     
@@ -1099,16 +1441,31 @@ namespace MultiplayerTetris
             }
 
             // draw buffered piece (only 0th player's currently)
-            spriteBatch.Draw(bufferedPieceTextures[0],
+            spriteBatch.Draw(bufferedPieceTextures[1],
                 new Vector2(((float)BufferedPieceX + DisplayOffsetX) / GridSquareSize,
                     ((float)BufferedPieceY + DisplayOffsetY) / GridSquareSize),
                 Color.White);
+            
+            /*
+            spriteBatch.Draw(bufferedPieceTextures[1],
+                new Vector2(((float)BufferedPieceX*2 + DisplayOffsetX) / GridSquareSize -2,
+                    ((float)BufferedPieceY + DisplayOffsetY) / GridSquareSize),
+                Color.White)6;
+            */
+
 
             // draw next pieces queue (only 0th player's currently)
-            spriteBatch.Draw(nextPiecesTextures[0],
+            spriteBatch.Draw(nextPiecesTextures[1],
                 new Vector2(((float)NextPiecesX + DisplayOffsetX) / GridSquareSize,
                     ((float)NextPiecesY + DisplayOffsetY) / GridSquareSize),
                 Color.White);
+            
+            /*
+            spriteBatch.Draw(nextPiecesTextures[1],
+                new Vector2(((float)NextPiecesX + DisplayOffsetX + NextPiecesWidth + GridSquareSize*3) / GridSquareSize,
+                    ((float)NextPiecesY + DisplayOffsetY) / GridSquareSize),
+                Color.White);
+            */
 
             spriteBatch.End();
             
@@ -1125,7 +1482,6 @@ namespace MultiplayerTetris
         
         #endregion
         
-        
-        
+
     }
 }
