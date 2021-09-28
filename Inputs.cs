@@ -9,6 +9,7 @@ namespace MultiplayerTetris
 {
     public class Inputs
     {
+        private KeyboardState _state;
 
         private Dictionary<Keys, bool> releasedBuffers;
         private Dictionary<Keys, bool> pressedBuffers;
@@ -26,15 +27,20 @@ namespace MultiplayerTetris
                 pressedBuffers.Add(currentKey, false);
                 timedBuffers.Add(currentKey, 0);
             }
+            
+            UpdateState();
+        }
+
+        public void UpdateState()
+        {
+            _state = Keyboard.GetState();
         }
 
         public bool KeyReleased(Keys key)
         {
             bool buffer = releasedBuffers[key];
             
-            KeyboardState state = Keyboard.GetState();
-
-            if (state.IsKeyDown(key))
+            if (_state.IsKeyDown(key))
             {
                 releasedBuffers[key] = true;
             }
@@ -54,9 +60,7 @@ namespace MultiplayerTetris
         {
             bool buffer = pressedBuffers[key];
 
-            KeyboardState state = Keyboard.GetState();
-
-            if (state.IsKeyDown(key))
+            if (_state.IsKeyDown(key))
             {
                 if (!buffer)
                 {
@@ -83,10 +87,8 @@ namespace MultiplayerTetris
                 buffer = 0;
                 timedBuffers[key] = 0;
             }
-            
-            KeyboardState state = Keyboard.GetState();
 
-            if (state.IsKeyDown(key))
+            if (_state.IsKeyDown(key))
             {
                 if (timedBuffers[key] == -1 * wait)
                 {

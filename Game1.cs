@@ -24,22 +24,30 @@ namespace MultiplayerTetris
         private SpriteBatch spriteBatch;
 
         private SpriteFont spriteFont;
-        
+
         #endregion
-        
-        
+
+
         #region User Defined
 
-        private const int ScreenWidth = 1000;
+
+
+        private const int NumPlayers = 2;
+
         private const int ScreenHeight = 800;
 
-        public const int GridSquareSize = 24;
+        // screen width relative to grid square size
+        //public const int GridSquareSize = 18;
+        //private const int ScreenWidth = (16 + 10 * NumPlayers) * GridSquareSize;
+
+        // grid square size relative to screen width
+        private const int ScreenWidth = 800;
+        public const int GridSquareSize = ScreenWidth/(16+10* NumPlayers);
+
 
         public const int GridHeight = 24;
 
         private const int NextPiecesAmount = 5;
-
-        private const int NumPlayers = 2;
         
         private const bool BlockDisplayMode = false;
 
@@ -49,7 +57,7 @@ namespace MultiplayerTetris
 
 
         #region Calculated
-        
+
         public const int GridWidth = 10 * NumPlayers;
         
         private const int DisplayOffsetX = GridSquareSize * ((ScreenWidth/GridSquareSize - GridWidth) / 2 -1);
@@ -787,6 +795,8 @@ namespace MultiplayerTetris
 
         protected override void Update(GameTime gameTime)
         {
+            
+            inputHandler.UpdateState();
 
             // quit
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
@@ -1441,7 +1451,7 @@ namespace MultiplayerTetris
             }
 
             // draw buffered piece (only 0th player's currently)
-            spriteBatch.Draw(bufferedPieceTextures[1],
+            spriteBatch.Draw(bufferedPieceTextures[0],
                 new Vector2(((float)BufferedPieceX + DisplayOffsetX) / GridSquareSize,
                     ((float)BufferedPieceY + DisplayOffsetY) / GridSquareSize),
                 Color.White);
@@ -1455,7 +1465,7 @@ namespace MultiplayerTetris
 
 
             // draw next pieces queue (only 0th player's currently)
-            spriteBatch.Draw(nextPiecesTextures[1],
+            spriteBatch.Draw(nextPiecesTextures[0],
                 new Vector2(((float)NextPiecesX + DisplayOffsetX) / GridSquareSize,
                     ((float)NextPiecesY + DisplayOffsetY) / GridSquareSize),
                 Color.White);
