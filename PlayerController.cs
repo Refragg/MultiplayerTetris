@@ -144,37 +144,40 @@ namespace MultiplayerTetris
     {
         private readonly string ControlsFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "controls.json");
         
-        private PlayerController[] _playerControllers;
+        private Dictionary<string, ControllerPreset> _controllerPresets;
         
-        public Keys GetControl(int playerIndex, Controls control)
+        public Keys GetControl(string preset, int playerIndex, Controls control)
         {
-            
-            return _playerControllers[playerIndex].PlayerControls[control];
+            return _controllerPresets[preset].PlayerControllers[playerIndex].PlayerControls[control];
         }
         
-        public Dictionary<Controls, Keys> GetControls(int playerIndex)
+        public Dictionary<Controls, Keys> GetControls(string preset, int playerIndex)
         {
-            return _playerControllers[playerIndex].PlayerControls;
+            return _controllerPresets[preset].PlayerControllers[playerIndex].PlayerControls;
         }
         
         public PlayerControllerManager()
         {
             if (!File.Exists(ControlsFile))
             {
-
-                PlayerController[] playerControllers = new PlayerController[DefaultControls.Defaults.Length];
-                
-                for (int i = 0; i < DefaultControls.Defaults.Length; i++)
+                SerializedControllerPreset[] controllerPresets =
                 {
-                    playerControllers[i] = new PlayerController(i);
-                }
+                    new SerializedControllerPreset("Keyboards"),
+                    new SerializedControllerPreset("Controllers")
+                };
                 
-
-                SerializedPlayerControllers toSerialize = new SerializedPlayerControllers(playerControllers);
+                SerializedControllerPresets toSerialize = new SerializedControllerPresets(controllerPresets);
                 
                 File.WriteAllText(ControlsFile, JsonConvert.SerializeObject(toSerialize, Formatting.Indented));
 
-                _playerControllers = playerControllers;
+                _controllerPresets = new Dictionary<string, ControllerPreset>();
+                foreach (SerializedControllerPreset preset in controllerPresets)
+                {
+                    ControllerPreset controllerPreset = preset.ToControllerPreset();
+                    
+                    _controllerPresets.Add(controllerPreset.PresetName, controllerPreset);
+                }
+                
                 return;
             }
             
@@ -184,43 +187,163 @@ namespace MultiplayerTetris
                 JObject jsonObj = (JObject)JToken.ReadFrom(treader);
                 //jsonObj.Value<string>("Version"); //PlayerController file version
                 
-                PlayerController[] playerControllersUnordered = jsonObj["Controllers"].ToObject<PlayerController[]>();
+                SerializedControllerPreset[] controllerPresets = jsonObj[nameof(SerializedControllerPresets.Presets)].ToObject<SerializedControllerPreset[]>();
 
-                //ordering the array based on the PlayerIndex field
-                int unorderedArrayLength = playerControllersUnordered.Length;
+                _controllerPresets = new Dictionary<string, ControllerPreset>();
 
-                _playerControllers = new PlayerController[unorderedArrayLength];
-                for (int i = 0; i < unorderedArrayLength; i++)
+                foreach (SerializedControllerPreset preset in controllerPresets)
                 {
-                    int playerIndex = playerControllersUnordered[i].PlayerIndex;
+                    ControllerPreset controllerPreset = preset.ToControllerPreset();
 
-                    _playerControllers[playerIndex] = playerControllersUnordered[i];
+                    int unorderedArrayLength = controllerPreset.PlayerControllers.Length;
+
+                    PlayerController[] playerControllersOrdered = new PlayerController[unorderedArrayLength];
+                        
+                    //ordering the PlayerControllers array based on the PlayerIndex field
+                    for (int i = 0; i < unorderedArrayLength; i++)
+                    {
+                        int playerIndex = controllerPreset.PlayerControllers[i].PlayerIndex;
+
+                        playerControllersOrdered[playerIndex] = controllerPreset.PlayerControllers[i];
+                    }
+
+                    controllerPreset.PlayerControllers = playerControllersOrdered;
+                    
+                    _controllerPresets.Add(controllerPreset.PresetName, controllerPreset);
                 }
             }
         }
     }
 
-    public class SerializedPlayerControllers
+    #region Serialization Classes
+    //root object of the json
+    public class SerializedControllerPresets
     {
         public string Version { get; set; }
         
-        public PlayerController[] Controllers { get; set; }
+        public SerializedControllerPreset[] Presets { get; set; }
 
         [JsonConstructor]
-        public SerializedPlayerControllers(PlayerController[] controller)
+        public SerializedControllerPresets(SerializedControllerPreset[] presets)
         {
             Version = "1.0";
-            Controllers = controller;
+            Presets = presets;
+        }
+    }
+
+    public class SerializedControllerPreset
+    {
+        public string PresetName;
+
+        public SerializedPlayerController[] PlayerControllers;
+        
+        [JsonConstructor]
+        public SerializedControllerPreset(string presetName, SerializedPlayerController[] playerControllers)
+        {
+            PresetName = presetName;
+            PlayerControllers = playerControllers;
+        }
+        
+        public SerializedControllerPreset(string presetName)
+        {
+            PresetName = presetName;
+
+            PlayerControllers = new SerializedPlayerController[DefaultControls.Defaults.Length];
+            for (int i = 0; i < DefaultControls.Defaults.Length; i++)
+            {
+                PlayerControllers[i] = new SerializedPlayerController("Guest", i);
+            }
+        }
+
+        public ControllerPreset ToControllerPreset()
+        {
+            PlayerController[] playerControllers = new PlayerController[PlayerControllers.Length];
+
+            for (int i = 0; i < PlayerControllers.Length; i++)
+            {
+                playerControllers[i] = PlayerControllers[i].ToPlayerController();
+            }
+
+            return new ControllerPreset(PresetName, playerControllers);
+        }
+    }
+    
+    public class SerializedPlayerController
+    {
+        public string PlayerName;
+        
+        public int PlayerIndex;
+        
+        public Dictionary<Controls, String> PlayerControls;
+        
+        public SerializedPlayerController(string playerName, int playerIndex)
+        {
+            PlayerName = playerName;
+            
+            PlayerIndex = playerIndex;
+
+            PlayerControls = new Dictionary<Controls, string>();
+
+            foreach (Controls control in typeof(Controls).GetEnumValues())
+            {
+                PlayerControls.Add(control, DefaultControls.Defaults[playerIndex][control].ToString());
+            }
+        }
+
+        public PlayerController ToPlayerController()
+        {
+            //parsing the key string to the corresponding enum value
+            Dictionary<Controls, Keys> playerControls = new Dictionary<Controls, Keys>();
+            foreach ((Controls control, string key) in PlayerControls)
+            {
+                if(!Keys.TryParse(key, out Keys keyOrNone))
+                    Console.WriteLine($"Could not parse the key {key} off of the controls");
+                             
+                playerControls.Add(control, keyOrNone);
+            }
+
+            return new PlayerController(PlayerName, PlayerIndex, playerControls);
+        }
+    }
+    #endregion
+
+    #region Deserialized objects
+    public class ControllerPreset
+    {
+        public string PresetName;
+
+        public PlayerController[] PlayerControllers;
+        
+        public ControllerPreset(string presetName, PlayerController[] playerControllers)
+        {
+            PresetName = presetName;
+            PlayerControllers = playerControllers;
+        }
+            
+        public ControllerPreset(string presetName)
+        {
+            PresetName = presetName;
+
+            PlayerControllers = new PlayerController[DefaultControls.Defaults.Length];
+            for (int i = 0; i < DefaultControls.Defaults.Length; i++)
+            {
+                PlayerControllers[i] = new PlayerController("Guest", i);
+            }
         }
     }
 
     public class PlayerController
     {
+        public string PlayerName;
+        
         public int PlayerIndex;
+        
         public Dictionary<Controls, Keys> PlayerControls;
 
-        public PlayerController(int playerIndex)
+        public PlayerController(string playerName, int playerIndex)
         {
+            PlayerName = playerName;
+            
             PlayerIndex = playerIndex;
 
             PlayerControls = new Dictionary<Controls, Keys>();
@@ -230,5 +353,15 @@ namespace MultiplayerTetris
                 PlayerControls.Add(control, DefaultControls.Defaults[playerIndex][control]);
             }
         }
+        
+        public PlayerController(string playerName, int playerIndex, Dictionary<Controls, Keys> playerControls)
+        {
+            PlayerName = playerName;
+            
+            PlayerIndex = playerIndex;
+
+            PlayerControls = playerControls;
+        }
     }
+    #endregion
 }

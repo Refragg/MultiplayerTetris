@@ -958,7 +958,7 @@ namespace MultiplayerTetris
                 
                 #region Movement and Rotation
 
-                if (inputHandler.KeyPressed(playerControllerManager.GetControl(currentPieceIndex, Controls.RotateRight)))
+                if (inputHandler.KeyPressed(playerControllerManager.GetControl("Keyboards", currentPieceIndex, Controls.RotateRight)))
                 {
                     // kick handles all rotation - rotation direction 1, as in clockwise
                     KickResult result = CheckKick(1, currentPieceIndex);
@@ -971,7 +971,7 @@ namespace MultiplayerTetris
                     UpdatePhantom(currentPieceIndex);
                 }
 
-                if (inputHandler.KeyPressed(playerControllerManager.GetControl(currentPieceIndex, Controls.RotateLeft)))
+                if (inputHandler.KeyPressed(playerControllerManager.GetControl("Keyboards", currentPieceIndex, Controls.RotateLeft)))
                 {
                     // kick handles all rotation - rotation direction -1, as in counter-clockwise
                     KickResult result = CheckKick(-1, currentPieceIndex);
@@ -984,7 +984,7 @@ namespace MultiplayerTetris
                     UpdatePhantom(currentPieceIndex);
                 }
 
-                if (inputHandler.TimedPress(playerControllerManager.GetControl(currentPieceIndex, Controls.MoveRight),5,15))
+                if (inputHandler.TimedPress(playerControllerManager.GetControl("Keyboards", currentPieceIndex, Controls.MoveRight),5,15))
                 {
                     //seFastScroll.Play();
                     soundPosition = GetAudioPosition(currentPieceIndex);
@@ -1055,7 +1055,7 @@ namespace MultiplayerTetris
 
                 }
 
-                if (inputHandler.TimedPress(playerControllerManager.GetControl(currentPieceIndex, Controls.MoveLeft),5,15))
+                if (inputHandler.TimedPress(playerControllerManager.GetControl("Keyboards", currentPieceIndex, Controls.MoveLeft),5,15))
                 {
                     //seFastScroll.Play();
                     soundPosition = GetAudioPosition(currentPieceIndex);
@@ -1136,7 +1136,7 @@ namespace MultiplayerTetris
                 
                 #region Extra Inputs
                 
-                if (inputHandler.KeyPressed(playerControllerManager.GetControl(currentPieceIndex, Controls.Hold)) && !swapped[currentPieceIndex])
+                if (inputHandler.KeyPressed(playerControllerManager.GetControl("Keyboards", currentPieceIndex, Controls.Hold)) && !swapped[currentPieceIndex])
                 {
 
                     // limit swaps per go to 1
@@ -1170,7 +1170,7 @@ namespace MultiplayerTetris
 
                 }
                 
-                if (Keyboard.GetState().IsKeyDown(playerControllerManager.GetControl(currentPieceIndex, Controls.SoftDrop)))
+                if (Keyboard.GetState().IsKeyDown(playerControllerManager.GetControl("Keyboards", currentPieceIndex, Controls.SoftDrop)))
                 {
                     // 10x gravity speed
                     gravityMultipliers[currentPieceIndex] = 10f;
@@ -1181,7 +1181,7 @@ namespace MultiplayerTetris
                     gravityMultipliers[currentPieceIndex] = 1f;
                 }
                 
-                if (inputHandler.KeyPressed(playerControllerManager.GetControl(currentPieceIndex, Controls.HardDrop)))
+                if (inputHandler.KeyPressed(playerControllerManager.GetControl("Keyboards", currentPieceIndex, Controls.HardDrop)))
                 {
                     // play placement sound effect
                     sePlaceBlock.Play();
