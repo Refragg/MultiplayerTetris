@@ -12,7 +12,7 @@ namespace MultiplayerTetris
     public class Tetromino
     {
 
-        public const int SquareSize = Game1.GridSquareSize;
+        public static int SquareSize = Game1.settings.GridSquareSize;
 
         public static readonly Rectangle[][] Rectangles =
         {
@@ -209,7 +209,7 @@ namespace MultiplayerTetris
 
                 int index = _x + _y * Game1.GridWidth;
 
-                if (!(_x<0 || _y<0 || _x >= Game1.GridWidth || _y >= Game1.GridHeight))
+                if (!(_x<0 || _y<0 || _x >= Game1.GridWidth || _y >= Game1.settings.GridHeight))
                 {
                     grid[index] = Game1.CurrentColorPalette[BlockType];
                 }
