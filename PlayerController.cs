@@ -134,6 +134,116 @@ namespace MultiplayerTetris
                 { Controls.SoftDrop, Keys.OemMinus },
                 { Controls.HardDrop, Keys.OemMinus },
                 { Controls.Hold, Keys.OemMinus }
+            },
+            
+            new Dictionary<Controls, Keys>()
+            {
+                { Controls.MoveRight, Keys.OemMinus },
+                { Controls.MoveLeft, Keys.OemMinus },
+                { Controls.RotateRight, Keys.OemMinus },
+                { Controls.RotateLeft, Keys.OemMinus },
+                { Controls.SoftDrop, Keys.OemMinus },
+                { Controls.HardDrop, Keys.OemMinus },
+                { Controls.Hold, Keys.OemMinus }
+            },
+            
+            new Dictionary<Controls, Keys>()
+            {
+                { Controls.MoveRight, Keys.OemMinus },
+                { Controls.MoveLeft, Keys.OemMinus },
+                { Controls.RotateRight, Keys.OemMinus },
+                { Controls.RotateLeft, Keys.OemMinus },
+                { Controls.SoftDrop, Keys.OemMinus },
+                { Controls.HardDrop, Keys.OemMinus },
+                { Controls.Hold, Keys.OemMinus }
+            },
+            
+            new Dictionary<Controls, Keys>()
+            {
+                { Controls.MoveRight, Keys.OemMinus },
+                { Controls.MoveLeft, Keys.OemMinus },
+                { Controls.RotateRight, Keys.OemMinus },
+                { Controls.RotateLeft, Keys.OemMinus },
+                { Controls.SoftDrop, Keys.OemMinus },
+                { Controls.HardDrop, Keys.OemMinus },
+                { Controls.Hold, Keys.OemMinus }
+            },
+            
+            new Dictionary<Controls, Keys>()
+            {
+                { Controls.MoveRight, Keys.OemMinus },
+                { Controls.MoveLeft, Keys.OemMinus },
+                { Controls.RotateRight, Keys.OemMinus },
+                { Controls.RotateLeft, Keys.OemMinus },
+                { Controls.SoftDrop, Keys.OemMinus },
+                { Controls.HardDrop, Keys.OemMinus },
+                { Controls.Hold, Keys.OemMinus }
+            },
+            
+            new Dictionary<Controls, Keys>()
+            {
+                { Controls.MoveRight, Keys.OemMinus },
+                { Controls.MoveLeft, Keys.OemMinus },
+                { Controls.RotateRight, Keys.OemMinus },
+                { Controls.RotateLeft, Keys.OemMinus },
+                { Controls.SoftDrop, Keys.OemMinus },
+                { Controls.HardDrop, Keys.OemMinus },
+                { Controls.Hold, Keys.OemMinus }
+            },
+            
+            new Dictionary<Controls, Keys>()
+            {
+                { Controls.MoveRight, Keys.OemMinus },
+                { Controls.MoveLeft, Keys.OemMinus },
+                { Controls.RotateRight, Keys.OemMinus },
+                { Controls.RotateLeft, Keys.OemMinus },
+                { Controls.SoftDrop, Keys.OemMinus },
+                { Controls.HardDrop, Keys.OemMinus },
+                { Controls.Hold, Keys.OemMinus }
+            },
+            
+            new Dictionary<Controls, Keys>()
+            {
+                { Controls.MoveRight, Keys.OemMinus },
+                { Controls.MoveLeft, Keys.OemMinus },
+                { Controls.RotateRight, Keys.OemMinus },
+                { Controls.RotateLeft, Keys.OemMinus },
+                { Controls.SoftDrop, Keys.OemMinus },
+                { Controls.HardDrop, Keys.OemMinus },
+                { Controls.Hold, Keys.OemMinus }
+            },
+            
+            new Dictionary<Controls, Keys>()
+            {
+                { Controls.MoveRight, Keys.OemMinus },
+                { Controls.MoveLeft, Keys.OemMinus },
+                { Controls.RotateRight, Keys.OemMinus },
+                { Controls.RotateLeft, Keys.OemMinus },
+                { Controls.SoftDrop, Keys.OemMinus },
+                { Controls.HardDrop, Keys.OemMinus },
+                { Controls.Hold, Keys.OemMinus }
+            },
+            
+            new Dictionary<Controls, Keys>()
+            {
+                { Controls.MoveRight, Keys.OemMinus },
+                { Controls.MoveLeft, Keys.OemMinus },
+                { Controls.RotateRight, Keys.OemMinus },
+                { Controls.RotateLeft, Keys.OemMinus },
+                { Controls.SoftDrop, Keys.OemMinus },
+                { Controls.HardDrop, Keys.OemMinus },
+                { Controls.Hold, Keys.OemMinus }
+            },
+            
+            new Dictionary<Controls, Keys>()
+            {
+                { Controls.MoveRight, Keys.OemMinus },
+                { Controls.MoveLeft, Keys.OemMinus },
+                { Controls.RotateRight, Keys.OemMinus },
+                { Controls.RotateLeft, Keys.OemMinus },
+                { Controls.SoftDrop, Keys.OemMinus },
+                { Controls.HardDrop, Keys.OemMinus },
+                { Controls.Hold, Keys.OemMinus }
             }
 
 
@@ -149,6 +259,11 @@ namespace MultiplayerTetris
         public Keys GetControl(string preset, int playerIndex, Controls control)
         {
             return _controllerPresets[preset].PlayerControllers[playerIndex].PlayerControls[control];
+        }
+        
+        public String GetName(string preset, int playerIndex)
+        {
+            return _controllerPresets[preset].PlayerControllers[playerIndex].PlayerName;
         }
         
         public Dictionary<Controls, Keys> GetControls(string preset, int playerIndex)
