@@ -32,9 +32,9 @@ namespace MultiplayerTetris
                     return state.ThumbSticks.Left.X > leftDeadZone;
                 
                 case Buttons.LeftThumbstickDown:
-                    return state.ThumbSticks.Left.Y > leftDeadZone;
-                case Buttons.LeftThumbstickUp:
                     return state.ThumbSticks.Left.Y < -leftDeadZone;
+                case Buttons.LeftThumbstickUp:
+                    return state.ThumbSticks.Left.Y > leftDeadZone;
                 
                 case Buttons.RightThumbstickLeft:
                     return state.ThumbSticks.Right.X < -rightDeadZone;
