@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Microsoft.Xna.Framework.Input;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -20,7 +21,7 @@ namespace MultiplayerTetris
     
     public static class DefaultControls
     {
-        public static readonly Dictionary<Controls, Keys>[] Defaults =
+        public static readonly Dictionary<Controls, Keys>[] KeyboardDefaults =
         {
             /*
             new Dictionary<Controls, Keys>()
@@ -248,17 +249,88 @@ namespace MultiplayerTetris
 
 
         };
+
+        public static readonly Dictionary<Controls, Buttons>[] GamePadDefaults =
+        {
+            new Dictionary<Controls, Buttons>()
+            {
+                { Controls.MoveRight, Buttons.DPadRight },
+                { Controls.MoveLeft, Buttons.DPadLeft },
+                { Controls.RotateRight, Buttons.B },
+                { Controls.RotateLeft, Buttons.X },
+                { Controls.SoftDrop, Buttons.Y },
+                { Controls.HardDrop, Buttons.A },
+                { Controls.Hold, Buttons.LeftShoulder }
+            },
+            
+            new Dictionary<Controls, Buttons>()
+            {
+                { Controls.MoveRight, Buttons.LeftThumbstickRight },
+                { Controls.MoveLeft, Buttons.LeftThumbstickLeft },
+                { Controls.RotateRight, Buttons.B },
+                { Controls.RotateLeft, Buttons.A },
+                { Controls.SoftDrop, Buttons.LeftThumbstickDown },
+                { Controls.HardDrop, Buttons.LeftThumbstickUp },
+                { Controls.Hold, Buttons.X }
+            },
+            
+            new Dictionary<Controls, Buttons>()
+            {
+                { Controls.MoveRight, Buttons.DPadRight },
+                { Controls.MoveLeft, Buttons.DPadLeft },
+                { Controls.RotateRight, Buttons.B },
+                { Controls.RotateLeft, Buttons.A },
+                { Controls.SoftDrop, Buttons.DPadDown },
+                { Controls.HardDrop, Buttons.RightShoulder },
+                { Controls.Hold, Buttons.LeftShoulder }
+            }
+        };
     }
 
+    public struct PlayerControl
+    {
+        public bool IsGamePad;
+
+        public int PlayerIndex;
+        
+        public Keys Key;
+
+        public Buttons Button;
+
+        public PlayerControl(bool isGamePad, int playerIndex, Keys key, Buttons button)
+        {
+            IsGamePad = isGamePad;
+            PlayerIndex = playerIndex;
+            Key = key;
+            Button = button;
+        }
+    }
+    
     public class PlayerControllerManager
     {
         private readonly string ControlsFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "controls.json");
         
         private Dictionary<string, ControllerPreset> _controllerPresets;
-        
-        public Keys GetControl(string preset, int playerIndex, Controls control)
+
+        public string[] GetPresets()
         {
-            return _controllerPresets[preset].PlayerControllers[playerIndex].PlayerControls[control];
+            return _controllerPresets.Keys.ToArray();
+        }
+        
+        public PlayerControl GetControl(string preset, int playerIndex, Controls control)
+        {
+            PlayerController playerController = _controllerPresets[preset].PlayerControllers[playerIndex];
+
+            int playerGamepadIndex = playerController.PlayerIndex;
+
+            if (!playerController.IsGamePad)
+            {
+                return new PlayerControl(playerController.IsGamePad, playerGamepadIndex, playerController.PlayerKeyboardControls[control],
+                    0);
+            }
+            
+            return new PlayerControl(playerController.IsGamePad, playerGamepadIndex, 0,
+                playerController.PlayerGamePadControls[control]);
         }
         
         public String GetName(string preset, int playerIndex)
@@ -268,7 +340,7 @@ namespace MultiplayerTetris
         
         public Dictionary<Controls, Keys> GetControls(string preset, int playerIndex)
         {
-            return _controllerPresets[preset].PlayerControllers[playerIndex].PlayerControls;
+            return _controllerPresets[preset].PlayerControllers[playerIndex].PlayerKeyboardControls;
         }
         
         public PlayerControllerManager()
@@ -277,8 +349,8 @@ namespace MultiplayerTetris
             {
                 SerializedControllerPreset[] controllerPresets =
                 {
-                    new SerializedControllerPreset("Keyboards"),
-                    new SerializedControllerPreset("Controllers")
+                    new SerializedControllerPreset("Keyboards", false),
+                    new SerializedControllerPreset("Gamepads", true)
                 };
                 
                 SerializedControllerPresets toSerialize = new SerializedControllerPresets(controllerPresets);
@@ -359,14 +431,24 @@ namespace MultiplayerTetris
             PlayerControllers = playerControllers;
         }
         
-        public SerializedControllerPreset(string presetName)
+        public SerializedControllerPreset(string presetName, bool isGamePad)
         {
             PresetName = presetName;
 
-            PlayerControllers = new SerializedPlayerController[DefaultControls.Defaults.Length];
-            for (int i = 0; i < DefaultControls.Defaults.Length; i++)
+            if (!isGamePad)
             {
-                PlayerControllers[i] = new SerializedPlayerController("Guest", i);
+                PlayerControllers = new SerializedPlayerController[DefaultControls.KeyboardDefaults.Length];
+                for (int i = 0; i < DefaultControls.KeyboardDefaults.Length; i++)
+                {
+                    PlayerControllers[i] = new SerializedPlayerController("Guest", i, false);
+                }
+                return;
+            }
+            
+            PlayerControllers = new SerializedPlayerController[DefaultControls.GamePadDefaults.Length];
+            for (int i = 0; i < DefaultControls.GamePadDefaults.Length; i++)
+            {
+                PlayerControllers[i] = new SerializedPlayerController("Guest", i, true);
             }
         }
 
@@ -388,36 +470,65 @@ namespace MultiplayerTetris
         public string PlayerName;
         
         public int PlayerIndex;
+
+        public bool IsGamePad;
         
         public Dictionary<Controls, String> PlayerControls;
         
-        public SerializedPlayerController(string playerName, int playerIndex)
+        public SerializedPlayerController(string playerName, int playerIndex, bool isGamePad)
         {
             PlayerName = playerName;
             
             PlayerIndex = playerIndex;
 
+            IsGamePad = isGamePad;
+
             PlayerControls = new Dictionary<Controls, string>();
 
+            if (!isGamePad)
+            {
+                foreach (Controls control in typeof(Controls).GetEnumValues())
+                {
+                    PlayerControls.Add(control, DefaultControls.KeyboardDefaults[playerIndex][control].ToString());
+                }
+                return;
+            }
+            
             foreach (Controls control in typeof(Controls).GetEnumValues())
             {
-                PlayerControls.Add(control, DefaultControls.Defaults[playerIndex][control].ToString());
+                PlayerControls.Add(control, DefaultControls.GamePadDefaults[playerIndex][control].ToString());
             }
         }
 
         public PlayerController ToPlayerController()
         {
-            //parsing the key string to the corresponding enum value
-            Dictionary<Controls, Keys> playerControls = new Dictionary<Controls, Keys>();
-            foreach ((Controls control, string key) in PlayerControls)
+            Dictionary<Controls, Keys> playerKeyboardControls = null;
+            Dictionary<Controls, Buttons> playerGamePadControls = null;
+            if (!IsGamePad)
             {
-                if(!Keys.TryParse(key, out Keys keyOrNone))
-                    Console.WriteLine($"Could not parse the key {key} off of the controls");
-                             
-                playerControls.Add(control, keyOrNone);
+                //parsing the key string to the corresponding enum value
+                playerKeyboardControls = new Dictionary<Controls, Keys>();
+                foreach ((Controls control, string key) in PlayerControls)
+                {
+                    if(!Keys.TryParse(key, out Keys keyOrNone))
+                        Console.WriteLine($"Could not parse the key {key} off of the controls");
+                                 
+                    playerKeyboardControls.Add(control, keyOrNone);
+                }
+                
+                return new PlayerController(PlayerName, PlayerIndex, IsGamePad, playerKeyboardControls, playerGamePadControls);
             }
-
-            return new PlayerController(PlayerName, PlayerIndex, playerControls);
+            
+            playerGamePadControls = new Dictionary<Controls, Buttons>();
+            foreach ((Controls control, string button) in PlayerControls)
+            {
+                if(!Buttons.TryParse(button, out Buttons buttonOrNone))
+                    Console.WriteLine($"Could not parse the button {button} off of the controls");
+                                 
+                playerGamePadControls.Add(control, buttonOrNone);
+            }
+            
+            return new PlayerController(PlayerName, PlayerIndex, IsGamePad, playerKeyboardControls, playerGamePadControls);
         }
     }
     #endregion
@@ -439,10 +550,10 @@ namespace MultiplayerTetris
         {
             PresetName = presetName;
 
-            PlayerControllers = new PlayerController[DefaultControls.Defaults.Length];
-            for (int i = 0; i < DefaultControls.Defaults.Length; i++)
+            PlayerControllers = new PlayerController[DefaultControls.KeyboardDefaults.Length];
+            for (int i = 0; i < DefaultControls.KeyboardDefaults.Length; i++)
             {
-                PlayerControllers[i] = new PlayerController("Guest", i);
+                PlayerControllers[i] = new PlayerController("Guest", i, false);
             }
         }
     }
@@ -452,30 +563,51 @@ namespace MultiplayerTetris
         public string PlayerName;
         
         public int PlayerIndex;
-        
-        public Dictionary<Controls, Keys> PlayerControls;
 
-        public PlayerController(string playerName, int playerIndex)
+        public bool IsGamePad;
+        
+        public Dictionary<Controls, Keys> PlayerKeyboardControls;
+
+        public Dictionary<Controls, Buttons> PlayerGamePadControls;
+
+        public PlayerController(string playerName, int playerIndex, bool isGamePad)
         {
             PlayerName = playerName;
             
             PlayerIndex = playerIndex;
 
-            PlayerControls = new Dictionary<Controls, Keys>();
+            IsGamePad = isGamePad;
+
+            if (!isGamePad)
+            {
+                PlayerKeyboardControls = new Dictionary<Controls, Keys>();
+
+                foreach (Controls control in typeof(Controls).GetEnumValues())
+                {
+                    PlayerKeyboardControls.Add(control, DefaultControls.KeyboardDefaults[playerIndex][control]);
+                }
+                return;
+            }
+            
+            PlayerGamePadControls = new Dictionary<Controls, Buttons>();
 
             foreach (Controls control in typeof(Controls).GetEnumValues())
             {
-                PlayerControls.Add(control, DefaultControls.Defaults[playerIndex][control]);
+                PlayerGamePadControls.Add(control, DefaultControls.GamePadDefaults[playerIndex][control]);
             }
         }
         
-        public PlayerController(string playerName, int playerIndex, Dictionary<Controls, Keys> playerControls)
+        public PlayerController(string playerName, int playerIndex, bool isGamePad, Dictionary<Controls, Keys> playerKeyboardControls, Dictionary<Controls, Buttons> playerGamePadControls)
         {
             PlayerName = playerName;
             
             PlayerIndex = playerIndex;
 
-            PlayerControls = playerControls;
+            IsGamePad = isGamePad;
+
+            PlayerKeyboardControls = playerKeyboardControls;
+
+            PlayerGamePadControls = playerGamePadControls;
         }
     }
     #endregion

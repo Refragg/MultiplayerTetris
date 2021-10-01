@@ -1317,7 +1317,15 @@ namespace MultiplayerTetris
                 
                 #region Movement and Rotation
 
-                if (inputHandler.KeyPressed(playerControllerManager.GetControl(settings.ControlsUsedPreset, currentPieceIndex, Controls.RotateRight)))
+                bool rotateRightPressed = inputHandler.KeyPressed(playerControllerManager.GetControl(settings.ControlsUsedPreset, currentPieceIndex, Controls.RotateRight));
+                bool rotateLeftPressed = inputHandler.KeyPressed(playerControllerManager.GetControl(settings.ControlsUsedPreset, currentPieceIndex, Controls.RotateLeft));
+                bool moveRightPressed = inputHandler.TimedPress(playerControllerManager.GetControl(settings.ControlsUsedPreset, currentPieceIndex, Controls.MoveRight), settings.InputSpeed, settings.InputWait);
+                bool moveLeftPressed = inputHandler.TimedPress(playerControllerManager.GetControl(settings.ControlsUsedPreset, currentPieceIndex, Controls.MoveLeft),settings.InputSpeed,settings.InputWait);
+                bool holdPressed = inputHandler.KeyPressed(playerControllerManager.GetControl(settings.ControlsUsedPreset, currentPieceIndex, Controls.Hold));
+                bool softDropPressed = inputHandler.KeyHeld(playerControllerManager.GetControl(settings.ControlsUsedPreset, currentPieceIndex, Controls.SoftDrop));
+                bool hardDropPressed = inputHandler.KeyPressed(playerControllerManager.GetControl(settings.ControlsUsedPreset, currentPieceIndex, Controls.HardDrop));
+                
+                if (rotateRightPressed)
                 {
                     // kick handles all rotation - rotation direction 1, as in clockwise
                     KickResult result = CheckKick(1, currentPieceIndex);
@@ -1330,7 +1338,7 @@ namespace MultiplayerTetris
                     UpdatePhantom(currentPieceIndex);
                 }
 
-                if (inputHandler.KeyPressed(playerControllerManager.GetControl(settings.ControlsUsedPreset, currentPieceIndex, Controls.RotateLeft)))
+                if (rotateLeftPressed)
                 {
                     // kick handles all rotation - rotation direction -1, as in counter-clockwise
                     KickResult result = CheckKick(-1, currentPieceIndex);
@@ -1343,7 +1351,7 @@ namespace MultiplayerTetris
                     UpdatePhantom(currentPieceIndex);
                 }
 
-                if (inputHandler.TimedPress(playerControllerManager.GetControl(settings.ControlsUsedPreset, currentPieceIndex, Controls.MoveRight),settings.InputSpeed,settings.InputWait))
+                if (moveRightPressed)
                 {
                     //seFastScroll.Play();
                     soundPosition = GetAudioPosition(currentPieceIndex);
@@ -1418,7 +1426,7 @@ namespace MultiplayerTetris
 
                 }
 
-                if (inputHandler.TimedPress(playerControllerManager.GetControl(settings.ControlsUsedPreset, currentPieceIndex, Controls.MoveLeft),settings.InputSpeed,settings.InputWait))
+                if (moveLeftPressed)
                 {
                     //seFastScroll.Play();
                     soundPosition = GetAudioPosition(currentPieceIndex);
@@ -1501,7 +1509,7 @@ namespace MultiplayerTetris
                 
                 #region Extra Inputs
                 
-                if (inputHandler.KeyPressed(playerControllerManager.GetControl(settings.ControlsUsedPreset, currentPieceIndex, Controls.Hold)) && !swapped[currentPieceIndex])
+                if (holdPressed && !swapped[currentPieceIndex])
                 {
 
                     // limit swaps per go to 1
@@ -1534,7 +1542,7 @@ namespace MultiplayerTetris
 
                 }
                 
-                if (Keyboard.GetState().IsKeyDown(playerControllerManager.GetControl(settings.ControlsUsedPreset, currentPieceIndex, Controls.SoftDrop)))
+                if (softDropPressed)
                 {
                     gravityMultipliers[currentPieceIndex] = settings.SoftDropAmount;
                 }
@@ -1544,7 +1552,7 @@ namespace MultiplayerTetris
                     gravityMultipliers[currentPieceIndex] = 1f;
                 }
                 
-                if (inputHandler.KeyPressed(playerControllerManager.GetControl(settings.ControlsUsedPreset, currentPieceIndex, Controls.HardDrop)))
+                if (hardDropPressed)
                 {
                     // play placement sound effect
                     sePlaceBlock.Play();

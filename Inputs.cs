@@ -9,14 +9,21 @@ namespace MultiplayerTetris
 {
     public class Inputs
     {
-        private KeyboardState _state;
+        private KeyboardState _keyboardState;
+        private GamePadState[] _gamePadStates;
 
         private Dictionary<Keys, bool> releasedBuffers;
         private Dictionary<Keys, bool> pressedBuffers;
         private Dictionary<Keys, int> timedBuffers;
 
+        private Dictionary<Buttons, bool>[] releasedGamePadBuffers;
+        private Dictionary<Buttons, bool>[] pressedGamePadBuffers;
+        private Dictionary<Buttons, int>[] timedGamePadBuffers;
+
         public Inputs()
         {
+            _gamePadStates = new GamePadState[GamePad.MaximumGamePadCount];
+            
             releasedBuffers = new Dictionary<Keys,bool>();
             pressedBuffers = new Dictionary<Keys,bool>();
             timedBuffers = new Dictionary<Keys, int>();
@@ -27,20 +34,42 @@ namespace MultiplayerTetris
                 pressedBuffers.Add(currentKey, false);
                 timedBuffers.Add(currentKey, 0);
             }
-            
+
+            releasedGamePadBuffers = new Dictionary<Buttons, bool>[GamePad.MaximumGamePadCount];
+            pressedGamePadBuffers = new Dictionary<Buttons, bool>[GamePad.MaximumGamePadCount];
+            timedGamePadBuffers = new Dictionary<Buttons, int>[GamePad.MaximumGamePadCount];
+
+            for (int i = 0; i < GamePad.MaximumGamePadCount; i++)
+            {
+                releasedGamePadBuffers[i] = new Dictionary<Buttons, bool>();
+                pressedGamePadBuffers[i] = new Dictionary<Buttons, bool>();
+                timedGamePadBuffers[i] = new Dictionary<Buttons, int>();
+                
+                foreach (Buttons currentButton in typeof(Buttons).GetEnumValues())
+                {
+                    releasedGamePadBuffers[i].Add(currentButton, false);
+                    pressedGamePadBuffers[i].Add(currentButton, false);
+                    timedGamePadBuffers[i].Add(currentButton, 0);
+                }
+            }
+
             UpdateState();
         }
 
         public void UpdateState()
         {
-            _state = Keyboard.GetState();
+            _keyboardState = Keyboard.GetState();
+            for (int i = 0; i < _gamePadStates.Length; i++)
+            {
+                _gamePadStates[i] = GamePad.GetState(i, GamePadDeadZone.None, GamePadDeadZone.None);
+            }
         }
 
         public bool KeyReleased(Keys key)
         {
             bool buffer = releasedBuffers[key];
             
-            if (_state.IsKeyDown(key))
+            if (_keyboardState.IsKeyDown(key))
             {
                 releasedBuffers[key] = true;
             }
@@ -56,62 +85,124 @@ namespace MultiplayerTetris
             return false;
         }
         
-        public bool KeyPressed(Keys key)
+        public bool KeyPressed(PlayerControl control)
         {
-            bool buffer = pressedBuffers[key];
-
-            if (_state.IsKeyDown(key))
+            if (!control.IsGamePad)
             {
-                if (!buffer)
+                bool buffer = pressedBuffers[control.Key];
+
+                if (_keyboardState.IsKeyDown(control.Key))
                 {
-                    pressedBuffers[key] = true;
-                    return true;
+                    if (!buffer)
+                    {
+                        pressedBuffers[control.Key] = true;
+                        return true;
+                    }
                 }
-            }
-            else
-            {
-                pressedBuffers[key] = false;
-            }
-            
-            return false;
-        }
-        
-        public bool TimedPress(Keys key, int rate, int wait)
-        {
-            int buffer = 0;
-
-            buffer = timedBuffers[key];
-
-            if (buffer >= rate)
-            {
-                buffer = 0;
-                timedBuffers[key] = 0;
-            }
-
-            if (_state.IsKeyDown(key))
-            {
-                if (timedBuffers[key] == -1 * wait)
+                else
                 {
-                    timedBuffers[key]++;
-                    return true;
+                    pressedBuffers[control.Key] = false;
                 }
                 
-                timedBuffers[key]++;
-                if (buffer == 0 && timedBuffers[key]>=0)
+                return false;
+            }
+            
+            bool gamePadBuffer = pressedGamePadBuffers[control.PlayerIndex][control.Button];
+
+            if (_gamePadStates[control.PlayerIndex].IsButtonDown(control.Button))
+            {
+                if (!gamePadBuffer)
+                {
+                    pressedGamePadBuffers[control.PlayerIndex][control.Button] = true;
+                    return true;
+                }
+            }
+            else
+            {
+                pressedGamePadBuffers[control.PlayerIndex][control.Button] = false;
+            }
+                
+            return false;
+        }
+
+        public bool KeyHeld(PlayerControl control)
+        {
+            if (!control.IsGamePad)
+            {
+                return _keyboardState.IsKeyDown(control.Key);
+            }
+
+            return _gamePadStates[control.PlayerIndex].IsButtonDown(control.Button, 0.2f, 0.2f);
+        }
+
+        public bool TimedPress(PlayerControl control, int rate, int wait)
+        {
+            if (!control.IsGamePad)
+            {
+                int buffer = 0;
+
+                buffer = timedBuffers[control.Key];
+
+                if (buffer >= rate)
+                {
+                    buffer = 0;
+                    timedBuffers[control.Key] = 0;
+                }
+
+                if (_keyboardState.IsKeyDown(control.Key))
+                {
+                    if (timedBuffers[control.Key] == -1 * wait)
+                    {
+                        timedBuffers[control.Key]++;
+                        return true;
+                    }
+                    
+                    timedBuffers[control.Key]++;
+                    if (buffer == 0 && timedBuffers[control.Key]>=0)
+                    {
+                        return true;
+                    }
+                }
+                else
+                {
+                    timedBuffers[control.Key] = -1*wait;
+                }
+
+                
+                return false;
+            }
+            
+            int gamePadBuffer = 0;
+
+            gamePadBuffer = timedGamePadBuffers[control.PlayerIndex][control.Button];
+
+            if (gamePadBuffer >= rate)
+            {
+                gamePadBuffer = 0;
+                timedGamePadBuffers[control.PlayerIndex][control.Button] = 0;
+            }
+
+            if (_gamePadStates[control.PlayerIndex].IsButtonDown(control.Button))
+            {
+                if (timedGamePadBuffers[control.PlayerIndex][control.Button] == -1 * wait)
+                {
+                    timedGamePadBuffers[control.PlayerIndex][control.Button]++;
+                    return true;
+                }
+                    
+                timedGamePadBuffers[control.PlayerIndex][control.Button]++;
+                if (gamePadBuffer == 0 && timedGamePadBuffers[control.PlayerIndex][control.Button]>=0)
                 {
                     return true;
                 }
             }
             else
             {
-                timedBuffers[key] = -1*wait;
+                timedGamePadBuffers[control.PlayerIndex][control.Button] = -1*wait;
             }
 
-            
+                
             return false;
         }
-
-        
-    
     }
 }
