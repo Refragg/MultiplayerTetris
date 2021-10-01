@@ -106,6 +106,9 @@ namespace MultiplayerTetris
 
         #region Needs Initializing
 
+
+        private Texture2D background;
+        
         private Random random;
         
         // Colours
@@ -124,6 +127,7 @@ namespace MultiplayerTetris
         private Texture2D backgroundTexture;
 
         private Texture2D darkGrayPixel;
+        private Texture2D blackPixel;
 
         public static TetrominoColorPalette CurrentColorPalette;
 
@@ -158,15 +162,19 @@ namespace MultiplayerTetris
         public Game1()
         {
             graphics = new GraphicsDeviceManager(this);
+
+
             Content.RootDirectory = "Content";
             IsMouseVisible = true;
+            
+            
             //IsFixedTimeStep = false;
         }
 
         protected override void Initialize()
         {
-            
-            
+
+
             #region Calculated Variables
             
             
@@ -241,7 +249,7 @@ namespace MultiplayerTetris
 
             #region Display Settings
             
-            graphics.IsFullScreen = false;
+            graphics.IsFullScreen = settings.Fullscreen;
             graphics.PreferredBackBufferWidth = settings.ScreenWidth;
             graphics.PreferredBackBufferHeight = settings.ScreenHeight;
 
@@ -309,7 +317,9 @@ namespace MultiplayerTetris
             gameTexture2.SetData(gameGrid);
 
             darkGrayPixel = new Texture2D(graphics.GraphicsDevice, 1, 1);
-            darkGrayPixel.SetData(new Color[]{new Color(60,60,60)});            
+            blackPixel = new Texture2D(graphics.GraphicsDevice, 1, 1);
+            darkGrayPixel.SetData(new Color[]{new Color(60,60,60)});        
+            blackPixel.SetData(new Color[]{Color.Black});
 
             // decoration on squares
 
@@ -578,6 +588,16 @@ namespace MultiplayerTetris
             
             #endregion
             
+            #region Image Loading
+
+            if (settings.Fullscreen)
+            {
+                background = Texture2D.FromFile(graphics.GraphicsDevice,Path.Combine("Content", "img", "background.jpg"));
+            }
+            
+
+            #endregion
+
         }
         
         #endregion
@@ -1608,7 +1628,6 @@ namespace MultiplayerTetris
                 }
 
                 #endregion
-
                 
 
                 #region Extra Inputs
@@ -1617,7 +1636,7 @@ namespace MultiplayerTetris
                 bool softDropPressed = inputHandler.KeyHeld(playerControllerManager.GetControl(settings.ControlsUsedPreset, currentPieceIndex, Controls.SoftDrop));
                 bool hardDropPressed = inputHandler.KeyPressed(playerControllerManager.GetControl(settings.ControlsUsedPreset, currentPieceIndex, Controls.HardDrop));
 
-                if (holdPressed)
+                if (holdPressed && !swapped[currentPieceIndex])
                 {
 
                     // limit swaps per go to 1
@@ -1926,6 +1945,20 @@ namespace MultiplayerTetris
             #region Sprite Batch
 
             spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointWrap, null, null, null, null);
+
+            if (settings.Fullscreen)
+            {
+                int dimming = 100;
+                spriteBatch.Draw(background,Vector2.Zero, new Color(dimming,dimming,dimming,dimming));
+            }
+
+            
+            //blackPixel
+            
+            spriteBatch.Draw(blackPixel,
+                new Microsoft.Xna.Framework.Rectangle(settings.GridSquareSize + DisplayOffsetX + (int)shakeX, settings.GridSquareSize + DisplayOffsetY + (int)shakeY,
+                    settings.GridSquareSize*gameTexture.Width, settings.GridSquareSize*gameTexture.Height),
+                Color.White);
             
 
             if (settings.DisplayGrid)
@@ -2101,16 +2134,21 @@ namespace MultiplayerTetris
             }
             
             
-            
+            /*
             // draw the fps
             spriteBatch.DrawString(spriteFont, (Math.Ceiling(frameCounter.CurrentFramesPerSecond)).ToString(CultureInfo.InvariantCulture),
                 Vector2.Zero,
                 Color.Gray);
+            */
             
+            //spriteBatch.DrawString(spriteFont, points+"",
+            //    new Vector2(0,settings.ScreenHeight-60),
+            //    Color.Gray);
             
             spriteBatch.DrawString(spriteFont, points+"",
-                new Vector2(0,settings.ScreenHeight-30),
-                Color.Gray);
+                new Vector2(0,settings.ScreenHeight-45),
+                Color.Gray, 0f, Vector2.Zero,
+                new Vector2(1.5f, 1.5f), SpriteEffects.None, 0f);
             
             //spriteBatch.DrawString(spriteFont, "rows: "+TotalRowsCleared,
             //    new Vector2(0,ScreenHeight-60),
@@ -2130,7 +2168,7 @@ namespace MultiplayerTetris
                 {
                     String nameText = playerControllerManager.GetName(settings.ControlsUsedPreset,p);
 
-                    int textOffsetX = (settings.GridSquareSize * 4 - (nameText.Length*25 - 1))/2;
+                    int textOffsetX = (settings.GridSquareSize * 4 - (nameText.Length*27))/2;
                     
                     
                     spriteBatch.DrawString(spriteFont, nameText,

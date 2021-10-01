@@ -17,6 +17,8 @@ namespace MultiplayerTetris
         public const int GridSquareSize = 30;
         public const int ScreenWidth = (16 + 10 * NumPlayers) * GridSquareSize;
         public const int ScreenHeight = (30) * GridSquareSize;
+
+        public const bool Fullscreen = false;
         
         public const int GridHeight = 24;
 
@@ -69,7 +71,9 @@ namespace MultiplayerTetris
         public int GridSquareSize;
         public int ScreenWidth;
         public int ScreenHeight;
-        
+
+        public bool Fullscreen;
+
         public int GridHeight;
 
         public int NextPiecesAmount;
@@ -102,7 +106,7 @@ namespace MultiplayerTetris
         public SIT SquareIndicatorType;
 
         [JsonConstructor]
-        public Settings(int numPlayers, int seed, int gridSquareSize, int screenWidth, int screenHeight, int gridHeight, int nextPiecesAmount, float softDropAmount, int inputWait, int inputSpeed, bool blockDisplayMode, bool pushUp, bool displayGrid, bool gridUnderneath, string controlsUsedPreset, bool displayingNames, bool perPlayerPhantomColours, bool outlinedPhantomDisplay, Color[] phantomColours, Color phantomColourDefault, bool squareIndicators, bool squareIndicatorsOnFalling, int squareIndicatorPadding, SIT squareIndicatorType)
+        public Settings(int numPlayers, int seed, int gridSquareSize, int screenWidth, int screenHeight, bool fullscreen, int gridHeight, int nextPiecesAmount, float softDropAmount, int inputWait, int inputSpeed, bool blockDisplayMode, bool pushUp, bool displayGrid, bool gridUnderneath, string controlsUsedPreset, bool displayingNames, bool perPlayerPhantomColours, bool outlinedPhantomDisplay, Color[] phantomColours, Color phantomColourDefault, bool squareIndicators, bool squareIndicatorsOnFalling, int squareIndicatorPadding, SIT squareIndicatorType)
         {
             NumPlayers = numPlayers;
             Seed = seed;
@@ -113,9 +117,18 @@ namespace MultiplayerTetris
 
             if (GridSquareSize < 0)
             {
+                
+                
                 if (ScreenWidth >= 0)
                 {
                     GridSquareSize = ScreenWidth / (16 + 10 * NumPlayers);
+                    if (ScreenHeight >= 0)
+                    {
+                        if (ScreenHeight / 30 < GridSquareSize)
+                        {
+                            GridSquareSize = ScreenHeight / 30;
+                        }
+                    }
                 }
                 else
                 {
@@ -132,6 +145,8 @@ namespace MultiplayerTetris
             {
                 ScreenHeight = (30) * GridSquareSize;
             }
+
+            Fullscreen = fullscreen;
 
             GridHeight = gridHeight;
             NextPiecesAmount = nextPiecesAmount;
@@ -165,6 +180,8 @@ namespace MultiplayerTetris
             GridSquareSize = DefaultSettings.GridSquareSize;
             ScreenWidth = DefaultSettings.ScreenWidth;
             ScreenHeight = DefaultSettings.ScreenHeight;
+
+            Fullscreen = DefaultSettings.Fullscreen;
             
             GridHeight = DefaultSettings.GridHeight;
             NextPiecesAmount = DefaultSettings.NextPiecesAmount;
