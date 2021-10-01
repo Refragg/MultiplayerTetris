@@ -107,19 +107,19 @@ namespace MultiplayerTetris
                 return false;
             }
             
-            bool gamePadBuffer = pressedGamePadBuffers[control.PlayerIndex][control.Button];
+            bool gamePadBuffer = pressedGamePadBuffers[control.GamePadIndex][control.Button];
 
-            if (_gamePadStates[control.PlayerIndex].IsButtonDown(control.Button))
+            if (_gamePadStates[control.GamePadIndex].IsButtonDown(control.Button, control.StickDeadZone, control.TriggerDeadZone))
             {
                 if (!gamePadBuffer)
                 {
-                    pressedGamePadBuffers[control.PlayerIndex][control.Button] = true;
+                    pressedGamePadBuffers[control.GamePadIndex][control.Button] = true;
                     return true;
                 }
             }
             else
             {
-                pressedGamePadBuffers[control.PlayerIndex][control.Button] = false;
+                pressedGamePadBuffers[control.GamePadIndex][control.Button] = false;
             }
                 
             return false;
@@ -132,7 +132,7 @@ namespace MultiplayerTetris
                 return _keyboardState.IsKeyDown(control.Key);
             }
 
-            return _gamePadStates[control.PlayerIndex].IsButtonDown(control.Button, 0.2f, 0.2f);
+            return _gamePadStates[control.GamePadIndex].IsButtonDown(control.Button, control.StickDeadZone, control.TriggerDeadZone);
         }
 
         public bool TimedPress(PlayerControl control, int rate, int wait)
@@ -174,31 +174,31 @@ namespace MultiplayerTetris
             
             int gamePadBuffer = 0;
 
-            gamePadBuffer = timedGamePadBuffers[control.PlayerIndex][control.Button];
+            gamePadBuffer = timedGamePadBuffers[control.GamePadIndex][control.Button];
 
             if (gamePadBuffer >= rate)
             {
                 gamePadBuffer = 0;
-                timedGamePadBuffers[control.PlayerIndex][control.Button] = 0;
+                timedGamePadBuffers[control.GamePadIndex][control.Button] = 0;
             }
 
-            if (_gamePadStates[control.PlayerIndex].IsButtonDown(control.Button))
+            if (_gamePadStates[control.GamePadIndex].IsButtonDown(control.Button, control.StickDeadZone, control.TriggerDeadZone))
             {
-                if (timedGamePadBuffers[control.PlayerIndex][control.Button] == -1 * wait)
+                if (timedGamePadBuffers[control.GamePadIndex][control.Button] == -1 * wait)
                 {
-                    timedGamePadBuffers[control.PlayerIndex][control.Button]++;
+                    timedGamePadBuffers[control.GamePadIndex][control.Button]++;
                     return true;
                 }
                     
-                timedGamePadBuffers[control.PlayerIndex][control.Button]++;
-                if (gamePadBuffer == 0 && timedGamePadBuffers[control.PlayerIndex][control.Button]>=0)
+                timedGamePadBuffers[control.GamePadIndex][control.Button]++;
+                if (gamePadBuffer == 0 && timedGamePadBuffers[control.GamePadIndex][control.Button]>=0)
                 {
                     return true;
                 }
             }
             else
             {
-                timedGamePadBuffers[control.PlayerIndex][control.Button] = -1*wait;
+                timedGamePadBuffers[control.GamePadIndex][control.Button] = -1*wait;
             }
 
                 

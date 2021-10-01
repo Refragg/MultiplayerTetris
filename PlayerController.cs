@@ -21,6 +21,10 @@ namespace MultiplayerTetris
     
     public static class DefaultControls
     {
+        public const float DefaultStickDeadZone = 0.3f;
+
+        public const float DefaultTriggerDeadZone = 0.1f;
+        
         public static readonly Dictionary<Controls, Keys>[] KeyboardDefaults =
         {
             /*
@@ -292,15 +296,24 @@ namespace MultiplayerTetris
         public bool IsGamePad;
 
         public int PlayerIndex;
+
+        public int GamePadIndex;
+
+        public float StickDeadZone;
+
+        public float TriggerDeadZone;
         
         public Keys Key;
 
         public Buttons Button;
 
-        public PlayerControl(bool isGamePad, int playerIndex, Keys key, Buttons button)
+        public PlayerControl(bool isGamePad, int playerIndex, int gamePadIndex, float stickDeadZone, float triggerDeadZone, Keys key, Buttons button)
         {
             IsGamePad = isGamePad;
             PlayerIndex = playerIndex;
+            GamePadIndex = gamePadIndex;
+            StickDeadZone = stickDeadZone;
+            TriggerDeadZone = triggerDeadZone;
             Key = key;
             Button = button;
         }
@@ -321,16 +334,12 @@ namespace MultiplayerTetris
         {
             PlayerController playerController = _controllerPresets[preset].PlayerControllers[playerIndex];
 
-            int playerGamepadIndex = playerController.PlayerIndex;
-
             if (!playerController.IsGamePad)
             {
-                return new PlayerControl(playerController.IsGamePad, playerGamepadIndex, playerController.PlayerKeyboardControls[control],
-                    0);
+                return new PlayerControl(playerController.IsGamePad, playerController.PlayerIndex, playerController.GamePadIndex, playerController.StickDeadZone, playerController.TriggerDeadZone, playerController.PlayerKeyboardControls[control], 0);
             }
             
-            return new PlayerControl(playerController.IsGamePad, playerGamepadIndex, 0,
-                playerController.PlayerGamePadControls[control]);
+            return new PlayerControl(playerController.IsGamePad, playerController.PlayerIndex, playerController.GamePadIndex, playerController.StickDeadZone, playerController.TriggerDeadZone, 0, playerController.PlayerGamePadControls[control]);
         }
         
         public String GetName(string preset, int playerIndex)
@@ -440,7 +449,7 @@ namespace MultiplayerTetris
                 PlayerControllers = new SerializedPlayerController[DefaultControls.KeyboardDefaults.Length];
                 for (int i = 0; i < DefaultControls.KeyboardDefaults.Length; i++)
                 {
-                    PlayerControllers[i] = new SerializedPlayerController("Guest", i, false);
+                    PlayerControllers[i] = new SerializedPlayerController("Guest", i, i, false, DefaultControls.DefaultStickDeadZone, DefaultControls.DefaultTriggerDeadZone);
                 }
                 return;
             }
@@ -448,7 +457,7 @@ namespace MultiplayerTetris
             PlayerControllers = new SerializedPlayerController[DefaultControls.GamePadDefaults.Length];
             for (int i = 0; i < DefaultControls.GamePadDefaults.Length; i++)
             {
-                PlayerControllers[i] = new SerializedPlayerController("Guest", i, true);
+                PlayerControllers[i] = new SerializedPlayerController("Guest", i, i, true, DefaultControls.DefaultStickDeadZone, DefaultControls.DefaultTriggerDeadZone);
             }
         }
 
@@ -471,17 +480,29 @@ namespace MultiplayerTetris
         
         public int PlayerIndex;
 
+        public int GamePadIndex;
+
         public bool IsGamePad;
+
+        public float StickDeadZone;
+
+        public float TriggerDeadZone;
         
         public Dictionary<Controls, String> PlayerControls;
         
-        public SerializedPlayerController(string playerName, int playerIndex, bool isGamePad)
+        public SerializedPlayerController(string playerName, int playerIndex, int gamePadIndex, bool isGamePad, float stickDeadZone, float triggerDeadZone)
         {
             PlayerName = playerName;
             
             PlayerIndex = playerIndex;
 
+            GamePadIndex = gamePadIndex;
+            
             IsGamePad = isGamePad;
+
+            StickDeadZone = stickDeadZone;
+
+            TriggerDeadZone = triggerDeadZone;
 
             PlayerControls = new Dictionary<Controls, string>();
 
@@ -516,19 +537,22 @@ namespace MultiplayerTetris
                     playerKeyboardControls.Add(control, keyOrNone);
                 }
                 
-                return new PlayerController(PlayerName, PlayerIndex, IsGamePad, playerKeyboardControls, playerGamePadControls);
+                return new PlayerController(PlayerName, PlayerIndex, GamePadIndex, IsGamePad, StickDeadZone, TriggerDeadZone, playerKeyboardControls, playerGamePadControls);
             }
             
             playerGamePadControls = new Dictionary<Controls, Buttons>();
             foreach ((Controls control, string button) in PlayerControls)
             {
-                if(!Buttons.TryParse(button, out Buttons buttonOrNone))
+                if (!Buttons.TryParse(button, out Buttons buttonOrNone))
+                {
+                    buttonOrNone = Buttons.BigButton;
                     Console.WriteLine($"Could not parse the button {button} off of the controls");
+                }
                                  
                 playerGamePadControls.Add(control, buttonOrNone);
             }
             
-            return new PlayerController(PlayerName, PlayerIndex, IsGamePad, playerKeyboardControls, playerGamePadControls);
+            return new PlayerController(PlayerName, PlayerIndex, GamePadIndex, IsGamePad, StickDeadZone, TriggerDeadZone, playerKeyboardControls, playerGamePadControls);
         }
     }
     #endregion
@@ -553,7 +577,7 @@ namespace MultiplayerTetris
             PlayerControllers = new PlayerController[DefaultControls.KeyboardDefaults.Length];
             for (int i = 0; i < DefaultControls.KeyboardDefaults.Length; i++)
             {
-                PlayerControllers[i] = new PlayerController("Guest", i, false);
+                PlayerControllers[i] = new PlayerController("Guest", i, i, false, DefaultControls.DefaultStickDeadZone, DefaultControls.DefaultTriggerDeadZone);
             }
         }
     }
@@ -563,20 +587,32 @@ namespace MultiplayerTetris
         public string PlayerName;
         
         public int PlayerIndex;
+        
+        public int GamePadIndex;
 
         public bool IsGamePad;
+
+        public float StickDeadZone;
+
+        public float TriggerDeadZone;
         
         public Dictionary<Controls, Keys> PlayerKeyboardControls;
 
         public Dictionary<Controls, Buttons> PlayerGamePadControls;
 
-        public PlayerController(string playerName, int playerIndex, bool isGamePad)
+        public PlayerController(string playerName, int playerIndex, int gamePadIndex, bool isGamePad, float stickDeadZone, float triggerDeadZone)
         {
             PlayerName = playerName;
             
             PlayerIndex = playerIndex;
 
+            GamePadIndex = gamePadIndex;
+
             IsGamePad = isGamePad;
+
+            StickDeadZone = stickDeadZone;
+
+            TriggerDeadZone = triggerDeadZone;
 
             if (!isGamePad)
             {
@@ -597,13 +633,19 @@ namespace MultiplayerTetris
             }
         }
         
-        public PlayerController(string playerName, int playerIndex, bool isGamePad, Dictionary<Controls, Keys> playerKeyboardControls, Dictionary<Controls, Buttons> playerGamePadControls)
+        public PlayerController(string playerName, int playerIndex, int gamePadIndex, bool isGamePad, float stickDeadZone, float triggerDeadZone, Dictionary<Controls, Keys> playerKeyboardControls, Dictionary<Controls, Buttons> playerGamePadControls)
         {
             PlayerName = playerName;
             
             PlayerIndex = playerIndex;
 
+            GamePadIndex = gamePadIndex;
+            
             IsGamePad = isGamePad;
+
+            StickDeadZone = stickDeadZone;
+
+            TriggerDeadZone = triggerDeadZone;
 
             PlayerKeyboardControls = playerKeyboardControls;
 

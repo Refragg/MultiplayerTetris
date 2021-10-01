@@ -4,7 +4,7 @@ namespace MultiplayerTetris
 {
     public static class GamePadStateExtensions
     {
-        public static bool IsButtonDown(this GamePadState state, Buttons stickButton, float leftDeadZone, float rightDeadZone)
+        public static bool IsButtonDown(this GamePadState state, Buttons stickButton, float stickDeadZone, float triggerDeadZone)
         {
             switch (stickButton)
             {
@@ -16,7 +16,11 @@ namespace MultiplayerTetris
                 case Buttons.RightThumbstickRight:
                 case Buttons.RightThumbstickDown:
                 case Buttons.RightThumbstickUp:
-                    return IsStickButtonPressed(state, stickButton, leftDeadZone, rightDeadZone);
+                    return IsStickButtonPressed(state, stickButton, stickDeadZone, stickDeadZone);
+                case Buttons.LeftTrigger:
+                    return state.Triggers.Left > triggerDeadZone;
+                case Buttons.RightTrigger:
+                    return state.Triggers.Right > triggerDeadZone;
                 default:
                     return state.IsButtonDown(stickButton);
             }
