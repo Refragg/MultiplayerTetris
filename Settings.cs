@@ -33,7 +33,7 @@ namespace MultiplayerTetris
         public const bool DisplayGrid = false;
         public const bool GridUnderneath = true;
 
-        public const string ControlsUsedPreset = "1 Player";
+        public const string ControlsUsedPreset = "Keyboards";
 
         public const bool DisplayingNames = true;
 
@@ -106,8 +106,6 @@ namespace MultiplayerTetris
         {
             NumPlayers = numPlayers;
             Seed = seed;
-
-            
             
             GridSquareSize = gridSquareSize;
             ScreenWidth = screenWidth;
@@ -135,40 +133,6 @@ namespace MultiplayerTetris
                 ScreenHeight = (30) * GridSquareSize;
             }
 
-
-
-                /*
-                if (screenWidth >= 0 && gridSquareSize < 0)
-                    GridSquareSize = screenWidth / (16 + 10 * numPlayers);
-                if (gridSquareSize >= 0 && screenWidth < 0)
-                    ScreenWidth = (16 + 10 * numPlayers) * gridSquareSize;
-                if (gridSquareSize >= 0 && screenHeight < 0)
-                    ScreenHeight = (30) * gridSquareSize;
-    
-                if (screenHeight >= 0 && screenWidth < 0 && gridSquareSize < 0)
-                {
-                    GridSquareSize = screenHeight / 30;
-                    ScreenWidth = (16 + 10 * numPlayers) * GridSquareSize;
-                }
-    
-                if (gridSquareSize >= 0 && screenWidth >= 0 && screenHeight >= 0)
-                {
-                    GridSquareSize = gridSquareSize;
-                    ScreenWidth = screenWidth;
-                    ScreenHeight = screenHeight;
-                }*/
-
-            //if in json ScreenWidth but not gridsquaresize you wanna claculate the gridsquaresize
-            //if gridsquaresize but not screenwidth then calculate screenwidth
-            //if gridsquaresize but not screenheight then calculate screenheight
-        
-            //if screenheight but not screenwidth and not gridsquaresize then calculate gridsquaresize
-            //          relative to screenheight then calculate screenwidth relative to gridsquaresize
-        
-            //if all of them no need to calculate lol
-        
-            // screen width & heihgt relative to grid square size
-            
             GridHeight = gridHeight;
             NextPiecesAmount = nextPiecesAmount;
             SoftDropAmount = softDropAmount;
