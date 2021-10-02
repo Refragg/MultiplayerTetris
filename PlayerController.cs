@@ -27,48 +27,12 @@ namespace MultiplayerTetris
         
         public static readonly Dictionary<Controls, Keys>[] KeyboardDefaults =
         {
-            /*
-            new Dictionary<Controls, Keys>()
-            {
-                { Controls.MoveRight, (Keys)102 },
-                { Controls.MoveLeft, (Keys)100 },
-                { Controls.RotateRight, (Keys)80 },
-                { Controls.RotateLeft, (Keys)79 },
-                { Controls.SoftDrop, (Keys)73 },
-                { Controls.HardDrop, (Keys)101 },
-                { Controls.Hold, (Keys)161 }
-            },
-            
-            new Dictionary<Controls, Keys>()
-            {
-                { Controls.MoveRight, (Keys)39 },
-                { Controls.MoveLeft, (Keys)37 },
-                { Controls.RotateRight, (Keys)38 },
-                { Controls.RotateLeft, (Keys)189 },
-                { Controls.SoftDrop, (Keys)40 },
-                { Controls.HardDrop, (Keys)32 },
-                { Controls.Hold, (Keys)67 }
-            },
-            
-            
-            
-            new Dictionary<Controls, Keys>()
-            {
-                { Controls.MoveRight, (Keys)68 },
-                { Controls.MoveLeft, (Keys)65 },
-                { Controls.RotateRight, (Keys)190 },
-                { Controls.RotateLeft, (Keys)188 },
-                { Controls.SoftDrop, (Keys)87 },
-                { Controls.HardDrop, (Keys)83 },
-                { Controls.Hold, (Keys)160 }
-            }*/
-
             new Dictionary<Controls, Keys>()
             {
                 { Controls.MoveRight, Keys.D },
                 { Controls.MoveLeft, Keys.A },
-                { Controls.RotateRight, Keys.H },
-                { Controls.RotateLeft, Keys.G },
+                { Controls.RotateRight, Keys.Right },
+                { Controls.RotateLeft, Keys.Left },
                 { Controls.SoftDrop, Keys.W },
                 { Controls.HardDrop, Keys.S },
                 { Controls.Hold, Keys.LeftShift }
@@ -78,180 +42,13 @@ namespace MultiplayerTetris
             {
                 { Controls.MoveRight, Keys.NumPad6 },
                 { Controls.MoveLeft, Keys.NumPad4 },
-                { Controls.RotateRight, Keys.Right },
-                { Controls.RotateLeft, Keys.Left },
+                { Controls.RotateRight, Keys.G },
+                { Controls.RotateLeft, Keys.R },
                 { Controls.SoftDrop, Keys.NumPad8 },
                 { Controls.HardDrop, Keys.NumPad5 },
-                { Controls.Hold, Keys.RightControl }
-            },
-
-
-            new Dictionary<Controls, Keys>()
-            {
-                { Controls.MoveRight, Keys.OemMinus },
-                { Controls.MoveLeft, Keys.OemMinus },
-                { Controls.RotateRight, Keys.OemMinus },
-                { Controls.RotateLeft, Keys.OemMinus },
-                { Controls.SoftDrop, Keys.OemMinus },
-                { Controls.HardDrop, Keys.OemMinus },
-                { Controls.Hold, Keys.OemMinus }
-            },
-
-            new Dictionary<Controls, Keys>()
-            {
-                { Controls.MoveRight, Keys.OemMinus },
-                { Controls.MoveLeft, Keys.OemMinus },
-                { Controls.RotateRight, Keys.OemMinus },
-                { Controls.RotateLeft, Keys.OemMinus },
-                { Controls.SoftDrop, Keys.OemMinus },
-                { Controls.HardDrop, Keys.OemMinus },
-                { Controls.Hold, Keys.OemMinus }
-            },
-
-            new Dictionary<Controls, Keys>()
-            {
-                { Controls.MoveRight, Keys.OemMinus },
-                { Controls.MoveLeft, Keys.OemMinus },
-                { Controls.RotateRight, Keys.OemMinus },
-                { Controls.RotateLeft, Keys.OemMinus },
-                { Controls.SoftDrop, Keys.OemMinus },
-                { Controls.HardDrop, Keys.OemMinus },
-                { Controls.Hold, Keys.OemMinus }
-            },
-
-            new Dictionary<Controls, Keys>()
-            {
-                { Controls.MoveRight, Keys.OemMinus },
-                { Controls.MoveLeft, Keys.OemMinus },
-                { Controls.RotateRight, Keys.OemMinus },
-                { Controls.RotateLeft, Keys.OemMinus },
-                { Controls.SoftDrop, Keys.OemMinus },
-                { Controls.HardDrop, Keys.OemMinus },
-                { Controls.Hold, Keys.OemMinus }
-            },
-
-            new Dictionary<Controls, Keys>()
-            {
-                { Controls.MoveRight, Keys.OemMinus },
-                { Controls.MoveLeft, Keys.OemMinus },
-                { Controls.RotateRight, Keys.OemMinus },
-                { Controls.RotateLeft, Keys.OemMinus },
-                { Controls.SoftDrop, Keys.OemMinus },
-                { Controls.HardDrop, Keys.OemMinus },
-                { Controls.Hold, Keys.OemMinus }
-            },
-            
-            new Dictionary<Controls, Keys>()
-            {
-                { Controls.MoveRight, Keys.OemMinus },
-                { Controls.MoveLeft, Keys.OemMinus },
-                { Controls.RotateRight, Keys.OemMinus },
-                { Controls.RotateLeft, Keys.OemMinus },
-                { Controls.SoftDrop, Keys.OemMinus },
-                { Controls.HardDrop, Keys.OemMinus },
-                { Controls.Hold, Keys.OemMinus }
-            },
-            
-            new Dictionary<Controls, Keys>()
-            {
-                { Controls.MoveRight, Keys.OemMinus },
-                { Controls.MoveLeft, Keys.OemMinus },
-                { Controls.RotateRight, Keys.OemMinus },
-                { Controls.RotateLeft, Keys.OemMinus },
-                { Controls.SoftDrop, Keys.OemMinus },
-                { Controls.HardDrop, Keys.OemMinus },
-                { Controls.Hold, Keys.OemMinus }
-            },
-            
-            new Dictionary<Controls, Keys>()
-            {
-                { Controls.MoveRight, Keys.OemMinus },
-                { Controls.MoveLeft, Keys.OemMinus },
-                { Controls.RotateRight, Keys.OemMinus },
-                { Controls.RotateLeft, Keys.OemMinus },
-                { Controls.SoftDrop, Keys.OemMinus },
-                { Controls.HardDrop, Keys.OemMinus },
-                { Controls.Hold, Keys.OemMinus }
-            },
-            
-            new Dictionary<Controls, Keys>()
-            {
-                { Controls.MoveRight, Keys.OemMinus },
-                { Controls.MoveLeft, Keys.OemMinus },
-                { Controls.RotateRight, Keys.OemMinus },
-                { Controls.RotateLeft, Keys.OemMinus },
-                { Controls.SoftDrop, Keys.OemMinus },
-                { Controls.HardDrop, Keys.OemMinus },
-                { Controls.Hold, Keys.OemMinus }
-            },
-            
-            new Dictionary<Controls, Keys>()
-            {
-                { Controls.MoveRight, Keys.OemMinus },
-                { Controls.MoveLeft, Keys.OemMinus },
-                { Controls.RotateRight, Keys.OemMinus },
-                { Controls.RotateLeft, Keys.OemMinus },
-                { Controls.SoftDrop, Keys.OemMinus },
-                { Controls.HardDrop, Keys.OemMinus },
-                { Controls.Hold, Keys.OemMinus }
-            },
-            
-            new Dictionary<Controls, Keys>()
-            {
-                { Controls.MoveRight, Keys.OemMinus },
-                { Controls.MoveLeft, Keys.OemMinus },
-                { Controls.RotateRight, Keys.OemMinus },
-                { Controls.RotateLeft, Keys.OemMinus },
-                { Controls.SoftDrop, Keys.OemMinus },
-                { Controls.HardDrop, Keys.OemMinus },
-                { Controls.Hold, Keys.OemMinus }
-            },
-            
-            new Dictionary<Controls, Keys>()
-            {
-                { Controls.MoveRight, Keys.OemMinus },
-                { Controls.MoveLeft, Keys.OemMinus },
-                { Controls.RotateRight, Keys.OemMinus },
-                { Controls.RotateLeft, Keys.OemMinus },
-                { Controls.SoftDrop, Keys.OemMinus },
-                { Controls.HardDrop, Keys.OemMinus },
-                { Controls.Hold, Keys.OemMinus }
-            },
-            
-            new Dictionary<Controls, Keys>()
-            {
-                { Controls.MoveRight, Keys.OemMinus },
-                { Controls.MoveLeft, Keys.OemMinus },
-                { Controls.RotateRight, Keys.OemMinus },
-                { Controls.RotateLeft, Keys.OemMinus },
-                { Controls.SoftDrop, Keys.OemMinus },
-                { Controls.HardDrop, Keys.OemMinus },
-                { Controls.Hold, Keys.OemMinus }
-            },
-            
-            new Dictionary<Controls, Keys>()
-            {
-                { Controls.MoveRight, Keys.OemMinus },
-                { Controls.MoveLeft, Keys.OemMinus },
-                { Controls.RotateRight, Keys.OemMinus },
-                { Controls.RotateLeft, Keys.OemMinus },
-                { Controls.SoftDrop, Keys.OemMinus },
-                { Controls.HardDrop, Keys.OemMinus },
-                { Controls.Hold, Keys.OemMinus }
-            },
-            
-            new Dictionary<Controls, Keys>()
-            {
-                { Controls.MoveRight, Keys.OemMinus },
-                { Controls.MoveLeft, Keys.OemMinus },
-                { Controls.RotateRight, Keys.OemMinus },
-                { Controls.RotateLeft, Keys.OemMinus },
-                { Controls.SoftDrop, Keys.OemMinus },
-                { Controls.HardDrop, Keys.OemMinus },
-                { Controls.Hold, Keys.OemMinus }
+                { Controls.Hold, Keys.Z }
             }
-
-
+            
         };
 
         public static readonly Dictionary<Controls, Buttons>[] GamePadDefaults =
@@ -264,28 +61,6 @@ namespace MultiplayerTetris
                 { Controls.RotateLeft, Buttons.X },
                 { Controls.SoftDrop, Buttons.Y },
                 { Controls.HardDrop, Buttons.A },
-                { Controls.Hold, Buttons.LeftShoulder }
-            },
-            
-            new Dictionary<Controls, Buttons>()
-            {
-                { Controls.MoveRight, Buttons.LeftThumbstickRight },
-                { Controls.MoveLeft, Buttons.LeftThumbstickLeft },
-                { Controls.RotateRight, Buttons.B },
-                { Controls.RotateLeft, Buttons.A },
-                { Controls.SoftDrop, Buttons.LeftThumbstickDown },
-                { Controls.HardDrop, Buttons.LeftThumbstickUp },
-                { Controls.Hold, Buttons.X }
-            },
-            
-            new Dictionary<Controls, Buttons>()
-            {
-                { Controls.MoveRight, Buttons.DPadRight },
-                { Controls.MoveLeft, Buttons.DPadLeft },
-                { Controls.RotateRight, Buttons.B },
-                { Controls.RotateLeft, Buttons.A },
-                { Controls.SoftDrop, Buttons.DPadDown },
-                { Controls.HardDrop, Buttons.RightShoulder },
                 { Controls.Hold, Buttons.LeftShoulder }
             }
         };

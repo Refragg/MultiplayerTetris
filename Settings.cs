@@ -14,11 +14,11 @@ namespace MultiplayerTetris
         public const int NumPlayers = 1;
         public const int Seed = -1;
         
-        public const int GridSquareSize = 30;
-        public const int ScreenWidth = (16 + 10 * NumPlayers) * GridSquareSize;
-        public const int ScreenHeight = (30) * GridSquareSize;
+        public const int GridSquareSize = -1;
+        public const int ScreenWidth = 1920;
+        public const int ScreenHeight = 1080;
 
-        public const bool Fullscreen = false;
+        public const bool Fullscreen = true;
         
         public const int GridHeight = 24;
 
@@ -177,9 +177,48 @@ namespace MultiplayerTetris
             NumPlayers = DefaultSettings.NumPlayers;
             Seed = DefaultSettings.Seed;
 
+            
+            
             GridSquareSize = DefaultSettings.GridSquareSize;
             ScreenWidth = DefaultSettings.ScreenWidth;
             ScreenHeight = DefaultSettings.ScreenHeight;
+            
+            if (GridSquareSize < 0)
+            {
+                
+                
+                if (ScreenWidth >= 0)
+                {
+                    GridSquareSize = ScreenWidth / (16 + 10 * NumPlayers);
+                    if (ScreenHeight >= 0)
+                    {
+                        if (ScreenHeight / 30 < GridSquareSize)
+                        {
+                            GridSquareSize = ScreenHeight / 30;
+                        }
+                    }
+                }
+                else
+                {
+                    GridSquareSize = ScreenHeight / 30;
+                }
+            }
+
+            if (ScreenWidth < 0)
+            {
+                ScreenWidth = (16 + 10 * NumPlayers) * GridSquareSize;
+            }
+
+            if (ScreenHeight < 0)
+            {
+                ScreenHeight = (30) * GridSquareSize;
+            }
+            
+            
+            
+            
+            
+            
 
             Fullscreen = DefaultSettings.Fullscreen;
             

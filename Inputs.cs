@@ -14,7 +14,7 @@ namespace MultiplayerTetris
 
         private Dictionary<Keys, bool> releasedBuffers;
         private Dictionary<Keys, bool> pressedBuffers;
-        private Dictionary<Keys, int> timedBuffers;
+        private Dictionary<Keys, float> timedBuffers;
 
         private Dictionary<Buttons, bool>[] releasedGamePadBuffers;
         private Dictionary<Buttons, bool>[] pressedGamePadBuffers;
@@ -26,13 +26,13 @@ namespace MultiplayerTetris
             
             releasedBuffers = new Dictionary<Keys,bool>();
             pressedBuffers = new Dictionary<Keys,bool>();
-            timedBuffers = new Dictionary<Keys, int>();
+            timedBuffers = new Dictionary<Keys, float>();
 
             foreach (Keys currentKey in typeof(Keys).GetEnumValues())
             {
                 releasedBuffers.Add(currentKey, false);
                 pressedBuffers.Add(currentKey, false);
-                timedBuffers.Add(currentKey, 0);
+                timedBuffers.Add(currentKey, 0f);
             }
 
             releasedGamePadBuffers = new Dictionary<Buttons, bool>[GamePad.MaximumGamePadCount];
@@ -135,29 +135,31 @@ namespace MultiplayerTetris
             return _gamePadStates[control.GamePadIndex].IsButtonDown(control.Button, control.StickDeadZone, control.TriggerDeadZone);
         }
 
-        public bool TimedPress(PlayerControl control, int rate, int wait)
+        public bool TimedPress(PlayerControl control, int rate, int wait, float deltaTime, bool reset)
         {
-            if (!control.IsGamePad)
+            if (!reset)
             {
-                int buffer = 0;
+                if (!control.IsGamePad)
+            {
+                float buffer = 0;
 
                 buffer = timedBuffers[control.Key];
 
                 if (buffer >= rate)
                 {
-                    buffer = 0;
-                    timedBuffers[control.Key] = 0;
+                    buffer = 0f;
+                    timedBuffers[control.Key] = 0f;
                 }
 
                 if (_keyboardState.IsKeyDown(control.Key))
                 {
-                    if (timedBuffers[control.Key] == -1 * wait)
+                    if (Math.Abs(timedBuffers[control.Key] - -1 * wait) < 0.005)
                     {
-                        timedBuffers[control.Key]++;
+                        timedBuffers[control.Key]+=deltaTime;
                         return true;
                     }
                     
-                    timedBuffers[control.Key]++;
+                    timedBuffers[control.Key]+=deltaTime;
                     if (buffer == 0 && timedBuffers[control.Key]>=0)
                     {
                         return true;
@@ -203,6 +205,13 @@ namespace MultiplayerTetris
 
                 
             return false;
+            }
+
+            else
+            {
+                //timedBuffers[control.Key] = -1*wait;
+                return _keyboardState.IsKeyDown(control.Key);
+            }
         }
     }
 }

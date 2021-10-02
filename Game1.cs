@@ -27,47 +27,88 @@ namespace MultiplayerTetris
 
         #endregion
 
-
         #region Calculated
 
-        private const bool DeveloperMode = true;
-        private const int AlphaDecreaseRate = 4;
-        private int pointsCurrentAlpha = 255;
+        private RenderTarget2D backgroundRenderTarget;
+        private RenderTarget2D shakeRenderTarget;
+        private RenderTarget2D nextPiecesRenderTarget;
+        private RenderTarget2D bufferPieceRenderTarget;
+        private RenderTarget2D[] nameRenderTargets;
+
+        private int[] nameOffsets;
+
+        private Vector2 pointsDisplayPos;
+        private Microsoft.Xna.Framework.Rectangle playerPiecesRect;
+        private Microsoft.Xna.Framework.Rectangle nextPiecesRect;
+        private Microsoft.Xna.Framework.Rectangle placedPiecesRect;
+        private Microsoft.Xna.Framework.Rectangle bufferedPieceRect;
+
+        private float deltaTime;
+
+        private bool moveRightPressed = false;
+        private bool moveLeftPressed = false;
+        private bool lastRight = false;
+        private bool lastLeft = false;
+        private bool rightLock = false;
+        private bool leftLock = false;
+        
+        private const bool DeveloperMode = false;
+        private const float AlphaDecreaseRate = 4f;
+        private const float BonusAlphaDecreaseRate = 2.5f;
+
+        private bool collidingLeft = false;
+        private bool collidingRight = false;
+        
+        private float pointsCurrentAlpha = 255;
         private Color pointsColor;
         private bool displayingPointsEffect;
         private String pointEffectText = "";
 
         private int points = 0;
-        private int TotalRowsCleared = 0;
+        private int totalRowsCleared = 0;
+        private int combo = 0;
+        private int b2b = 0;
+        
+        private float comboCurrentAlpha = 0f;
+        private Color comboColor;
+        private bool displayingComboEffect;
+        private String comboEffectText = "";
+        
+        private float b2bCurrentAlpha = 255;
+        private Color b2bColor;
+        private bool displayingB2BEffect;
+        private String b2bEffectText = "";
+        
 
         private float shakeX = 0;
         private float shakeY = 0;
-        private float shakeDamping = 10;
+        private readonly float shakeDamping = 10;
+        private float shakeWait = 0;
         
 
         private readonly Array tetrominoTypes =  typeof(Tetromino.Type).GetEnumValues();
         
         public static int GridWidth;
         
-        private int DisplayOffsetX;
-        private int DisplayOffsetY;
+        private int displayOffsetX;
+        private int displayOffsetY;
 
-        private int GridOffsetX;
-        private int GridOffsetY;
+        private int gridOffsetX;
+        private int gridOffsetY;
 
         private int gridL;
         private int gridR;
 
-        private int XSpawnPosition;
-        private int YSpawnPosition;
+        private int xSpawnPosition;
+        private int ySpawnPosition;
 
-        private int XSpawnOffset;
+        private int xSpawnOffset;
 
-        private int BufferedPieceX;
-        private int BufferedPieceY;
+        private int bufferedPieceX;
+        private int bufferedPieceY;
 
-        private int NextPiecesX;
-        private int NextPiecesY;
+        private int nextPiecesX;
+        private int nextPiecesY;
 
         private int NextPiecesWidth;
         private int NextPiecesHeight;
@@ -103,7 +144,6 @@ namespace MultiplayerTetris
 
         #endregion
 
-
         #region Needs Initializing
 
 
@@ -118,8 +158,8 @@ namespace MultiplayerTetris
         
         private Color phantomColourDefault;
         
-        private Color[] GameBorderGrid;
-        private Texture2D GameBorderTexture;
+        private Color[] gameBorderGrid;
+        private Texture2D gameBorderTexture;
 
         private Texture2D squareIndicatorTexture;
 
@@ -138,7 +178,7 @@ namespace MultiplayerTetris
         private PlayerControllerManager playerControllerManager;
 
         private SettingsManager settingsManager;
-        public static Settings settings;
+        public static Settings Settings;
 
         private Texture2D gameTexture;
         private Texture2D gameTexture2;
@@ -165,12 +205,14 @@ namespace MultiplayerTetris
         {
             graphics = new GraphicsDeviceManager(this);
 
+            IsFixedTimeStep = false;
+            graphics.SynchronizeWithVerticalRetrace = false;
+            
 
             Content.RootDirectory = "Content";
             IsMouseVisible = true;
             
             
-            //IsFixedTimeStep = false;
         }
 
         protected override void Initialize()
@@ -181,76 +223,71 @@ namespace MultiplayerTetris
             
             
             settingsManager = new SettingsManager();
-            settings = settingsManager.GetSettings(settingsManager.GetRequestedPreset());
+            Settings = settingsManager.GetSettings(settingsManager.GetRequestedPreset());
             
             
-            GridWidth = 10 * settings.NumPlayers;
+            GridWidth = 10 * Settings.NumPlayers;
             
-            DisplayOffsetX = settings.GridSquareSize * ((settings.ScreenWidth/settings.GridSquareSize - GridWidth) / 2 -1);
-            DisplayOffsetY = settings.GridSquareSize;//* ((ScreenHeight / GridSquareSize - GridHeight) / 2 - 1);
+            displayOffsetX = Settings.GridSquareSize * ((Settings.ScreenWidth/Settings.GridSquareSize - GridWidth) / 2 -1);
+            displayOffsetY = Settings.GridSquareSize;//* ((ScreenHeight / GridSquareSize - GridHeight) / 2 - 1);
 
-            GridOffsetX = settings.GridSquareSize;
-            GridOffsetY = settings.GridSquareSize;
+            gridOffsetX = Settings.GridSquareSize;
+            gridOffsetY = Settings.GridSquareSize;
 
-            gridL = GridOffsetX;
-            gridR = GridOffsetX + GridWidth * settings.GridSquareSize;
+            gridL = gridOffsetX;
+            gridR = gridOffsetX + GridWidth * Settings.GridSquareSize;
 
-            XSpawnPosition = 3* settings.GridSquareSize;
-            YSpawnPosition = -1* settings.GridSquareSize;
+            xSpawnPosition = 3* Settings.GridSquareSize;
+            ySpawnPosition = -1* Settings.GridSquareSize;
 
-            XSpawnOffset = (GridWidth / settings.NumPlayers) * settings.GridSquareSize;
+            xSpawnOffset = (GridWidth / Settings.NumPlayers) * Settings.GridSquareSize;
 
-            BufferedPieceX = -6* settings.GridSquareSize;
-            BufferedPieceY = settings.GridSquareSize;
+            bufferedPieceX = -6* Settings.GridSquareSize;
+            bufferedPieceY = Settings.GridSquareSize;
 
-            NextPiecesX = (GridWidth + 3) * settings.GridSquareSize;
-            NextPiecesY = settings.GridSquareSize;
+            nextPiecesX = (GridWidth + 3) * Settings.GridSquareSize;
+            nextPiecesY = Settings.GridSquareSize;
 
-            NextPiecesWidth = 5* settings.GridSquareSize;
-            NextPiecesHeight = 3* settings.NextPiecesAmount * settings.GridSquareSize;
+            NextPiecesWidth = 5* Settings.GridSquareSize;
+            NextPiecesHeight = 3* Settings.NextPiecesAmount * Settings.GridSquareSize;
 
-            currentPieces = new Tetromino[settings.NumPlayers];
+            currentPieces = new Tetromino[Settings.NumPlayers];
 
-            positions = new int[settings.NumPlayers][];
+            positions = new int[Settings.NumPlayers][];
 
-            realPositionsY = new float[settings.NumPlayers];
-            gravityMultipliers = new float[settings.NumPlayers];
+            realPositionsY = new float[Settings.NumPlayers];
+            gravityMultipliers = new float[Settings.NumPlayers];
             
-            bufferedPieces = new Tetromino.Type[settings.NumPlayers] ;
-            swapped = new bool[settings.NumPlayers];
-            firstBuffers = new bool[settings.NumPlayers];
-            bufferedPieceGrids = new Color[settings.NumPlayers][];
-            bufferedPieceTextures = new Texture2D[settings.NumPlayers];
+            bufferedPieces = new Tetromino.Type[Settings.NumPlayers] ;
+            swapped = new bool[Settings.NumPlayers];
+            firstBuffers = new bool[Settings.NumPlayers];
+            bufferedPieceGrids = new Color[Settings.NumPlayers][];
+            bufferedPieceTextures = new Texture2D[Settings.NumPlayers];
             
-            pieceQueues = new Queue<Tetromino.Type>[settings.NumPlayers];
+            pieceQueues = new Queue<Tetromino.Type>[Settings.NumPlayers];
             
-            nextPiecesGrids = new Color[settings.NumPlayers][];
-            nextPiecesTextures = new Texture2D[settings.NumPlayers];
+            nextPiecesGrids = new Color[Settings.NumPlayers][];
+            nextPiecesTextures = new Texture2D[Settings.NumPlayers];
             
-            phantomPositions = new Vector2[settings.NumPlayers];
+            phantomPositions = new Vector2[Settings.NumPlayers];
             
-            phantomDropGrids = new Color[settings.NumPlayers][];
-            phantomDropTextures = new Texture2D[settings.NumPlayers];
+            phantomDropGrids = new Color[Settings.NumPlayers][];
+            phantomDropTextures = new Texture2D[Settings.NumPlayers];
             
-            Gravity = (2*settings.GridSquareSize)/60f;
+            Gravity = (2*Settings.GridSquareSize)/60f;
             
-            gameGrid = new Color[GridWidth*settings.GridHeight];
+            gameGrid = new Color[GridWidth*Settings.GridHeight];
 
 
-            squareIndicatorGrid = new Color[settings.GridSquareSize*settings.GridSquareSize];            
-            
-            
-            
-            
-            
-            
+            squareIndicatorGrid = new Color[Settings.GridSquareSize*Settings.GridSquareSize];
+
             #endregion
 
             #region Display Settings
             
-            graphics.IsFullScreen = settings.Fullscreen;
-            graphics.PreferredBackBufferWidth = settings.ScreenWidth;
-            graphics.PreferredBackBufferHeight = settings.ScreenHeight;
+            graphics.IsFullScreen = Settings.Fullscreen;
+            graphics.PreferredBackBufferWidth = Settings.ScreenWidth;
+            graphics.PreferredBackBufferHeight = Settings.ScreenHeight;
 
             graphics.ApplyChanges();
             
@@ -274,13 +311,13 @@ namespace MultiplayerTetris
             #endregion
             
             // Random
-            if (settings.Seed < 0)
+            if (Settings.Seed < 0)
             {
                 Random r = new Random();
-                settings.Seed = r.Next();
+                Settings.Seed = r.Next();
             }
 
-            random = new Random(settings.Seed);
+            random = new Random(Settings.Seed);
 
             // other classes
             frameCounter = new FrameCounter();
@@ -288,6 +325,13 @@ namespace MultiplayerTetris
             playerControllerManager = new PlayerControllerManager();
 
 
+            pointsDisplayPos = new Vector2(
+                Settings.GridSquareSize + displayOffsetX + (int) shakeX +
+                ((float) GridWidth / 2f) * Settings.GridSquareSize - ((float) ((points + "").Length) * 20.25f),
+                Settings.GridSquareSize + displayOffsetY + (int) shakeY +
+                Settings.GridHeight * Settings.GridSquareSize + 12);
+            
+            
             
             // initialisation
             //scale = Matrix.CreateScale(new Vector3(settings.GridSquareSize, settings.GridSquareSize, 1));
@@ -299,7 +343,8 @@ namespace MultiplayerTetris
             phantomColourDefault = new Color(120,120,120,100);
 
             pointsColor = new Color(pointsCurrentAlpha, pointsCurrentAlpha, pointsCurrentAlpha, pointsCurrentAlpha);
-
+            comboColor = new Color(comboCurrentAlpha,comboCurrentAlpha,comboCurrentAlpha,comboCurrentAlpha);
+            b2bColor = new Color(b2bCurrentAlpha,b2bCurrentAlpha,b2bCurrentAlpha,b2bCurrentAlpha);
 
             // 3D audio stuff
             audioManager = new AudioManager(this);
@@ -307,12 +352,30 @@ namespace MultiplayerTetris
             audioEmitter = new AudioEmitter();
             soundPosition = Vector3.Zero;
             
+            if (DeveloperMode)
+            {
+                for (int i = 0; i < GridWidth - 1; i++)
+                {
+                    for (int j = Settings.GridHeight - 16; j < Settings.GridHeight; j++)
+                    {
+                        int xPos = i;
+                        int yPos = j * GridWidth;
+
+                        int b = (int)(i * (255f / ((float)GridWidth - 1)));
+                        int g = 255 - (int)((float)(j - (Settings.GridHeight - 17)) * 16f);
+                        int r = 255 - b;
+
+                        gameGrid[xPos + yPos] = new Color(r, g, b);
+                    }
+                }
+            }
+
             
             
             // texture setup
-            gameTexture = new Texture2D(graphics.GraphicsDevice, GridWidth, settings.GridHeight);
+            gameTexture = new Texture2D(graphics.GraphicsDevice, GridWidth, Settings.GridHeight);
             gameTexture.SetData(gameGrid);
-            gameTexture2 = new Texture2D(graphics.GraphicsDevice, GridWidth, settings.GridHeight);
+            gameTexture2 = new Texture2D(graphics.GraphicsDevice, GridWidth, Settings.GridHeight);
             gameTexture2.SetData(gameGrid);
 
             whitePixel = new Texture2D(graphics.GraphicsDevice, 1, 1); 
@@ -320,33 +383,33 @@ namespace MultiplayerTetris
             darkGrayPixel = new Texture2D(graphics.GraphicsDevice, 1, 1);
             blackPixel = new Texture2D(graphics.GraphicsDevice, 1, 1);
             
-            whitePixel.SetData(new Color[]{Color.White});
-            grayPixel.SetData(new Color[]{Color.Gray});
-            darkGrayPixel.SetData(new Color[]{new Color(60,60,60)});        
-            blackPixel.SetData(new Color[]{Color.Black});
+            whitePixel.SetData(new[]{Color.White});
+            grayPixel.SetData(new[]{Color.Gray});
+            darkGrayPixel.SetData(new[]{new Color(60,60,60)});        
+            blackPixel.SetData(new[]{Color.Black});
 
             // decoration on squares
 
-            squareIndicatorTexture = new Texture2D(graphics.GraphicsDevice, settings.GridSquareSize, settings.GridSquareSize);
+            squareIndicatorTexture = new Texture2D(graphics.GraphicsDevice, Settings.GridSquareSize, Settings.GridSquareSize);
 
-            if (settings.SquareIndicatorType != Settings.SIT.FullBorder)
+            if (Settings.SquareIndicatorType != Settings.SIT.FullBorder)
             {
                 
 
-                if (settings.SquareIndicators)
+                if (Settings.SquareIndicators)
                 {
-                    int padding = settings.GridSquareSize / settings.SquareIndicatorPadding;
+                    int padding = Settings.GridSquareSize / Settings.SquareIndicatorPadding;
                     int thickness = 2;
 
-                    for (int i = padding; i < settings.GridSquareSize - padding; i++)
+                    for (int i = padding; i < Settings.GridSquareSize - padding; i++)
                     {
-                        for (int j = padding; j < settings.GridSquareSize - padding; j++)
+                        for (int j = padding; j < Settings.GridSquareSize - padding; j++)
                         {
 
-                            if (settings.SquareIndicatorType == Settings.SIT.Border)
+                            if (Settings.SquareIndicatorType == Settings.SIT.Border)
                             {
-                                if ((i > (padding + thickness - 1) && i < (settings.GridSquareSize - padding - thickness))
-                                    && (j > (padding + thickness - 1) && j < (settings.GridSquareSize - padding - thickness)))
+                                if ((i > (padding + thickness - 1) && i < (Settings.GridSquareSize - padding - thickness))
+                                    && (j > (padding + thickness - 1) && j < (Settings.GridSquareSize - padding - thickness)))
                                 {
                                     continue;
                                 }
@@ -354,7 +417,7 @@ namespace MultiplayerTetris
 
 
 
-                            squareIndicatorGrid[i + j * settings.GridSquareSize] = transparentBlack;
+                            squareIndicatorGrid[i + j * Settings.GridSquareSize] = transparentBlack;
                         }
                     }
 
@@ -368,21 +431,21 @@ namespace MultiplayerTetris
 
                 for (int i = 0; i < 2; i++)
                 {
-                    xpos = i*settings.GridSquareSize -i;
+                    xpos = i*Settings.GridSquareSize -i;
 
 
-                    for (int j = 0; j < settings.GridSquareSize; j++)
+                    for (int j = 0; j < Settings.GridSquareSize; j++)
                     {
                         ypos = j;
-                        squareIndicatorGrid[xpos + ypos * settings.GridSquareSize] = transparentBlack;
+                        squareIndicatorGrid[xpos + ypos * Settings.GridSquareSize] = transparentBlack;
                     }
 
-                    ypos = i * settings.GridSquareSize - i;
+                    ypos = i * Settings.GridSquareSize - i;
 
-                    for (int j = 0; j < settings.GridSquareSize; j++)
+                    for (int j = 0; j < Settings.GridSquareSize; j++)
                     {
                         xpos = j;
-                        squareIndicatorGrid[xpos + ypos * settings.GridSquareSize] = transparentBlack;
+                        squareIndicatorGrid[xpos + ypos * Settings.GridSquareSize] = transparentBlack;
                     }
 
                 }
@@ -393,14 +456,15 @@ namespace MultiplayerTetris
 
 
             // per player initialisation
-            for (int i = 0; i < settings.NumPlayers; i++)
+            for (int i = 0; i < Settings.NumPlayers; i++)
             {
                 // set positions for each player
                 positions[i] = new[]
                 {
-                    GridOffsetX + XSpawnPosition + XSpawnOffset*i,
-                    GridOffsetY + YSpawnPosition
+                    gridOffsetX + xSpawnPosition + xSpawnOffset*i,
+                    gridOffsetY + ySpawnPosition
                 };
+                
                 
                 
                 // gravity
@@ -428,9 +492,15 @@ namespace MultiplayerTetris
                 
                 // current piece
                 currentPieces[i] = NextRandom(i);
+                
+                if (currentPieces[i].BlockType == Tetromino.Type.O)
+                {
+                    positions[i][1] -= 1;
+                }
+                
                 currentPieces[i].Update();
 
-                nextPiecesTextures[i] = new Texture2D(graphics.GraphicsDevice,2*NextPiecesWidth/settings.GridSquareSize,2*NextPiecesHeight/settings.GridSquareSize);
+                nextPiecesTextures[i] = new Texture2D(graphics.GraphicsDevice,2*NextPiecesWidth/Settings.GridSquareSize,2*NextPiecesHeight/Settings.GridSquareSize);
                 nextPiecesGrids[i] = new Color[(nextPiecesTextures[i].Width*nextPiecesTextures[i].Height)];
 
                 UpdateNextPiecesDisplay(i);
@@ -444,7 +514,7 @@ namespace MultiplayerTetris
 
 
 
-                phantomDropTextures[i] = new Texture2D(graphics.GraphicsDevice, 4*((settings.OutlinedPhantomDisplay)?settings.GridSquareSize:1),4*((settings.OutlinedPhantomDisplay)?settings.GridSquareSize:1));
+                phantomDropTextures[i] = new Texture2D(graphics.GraphicsDevice, 4*((Settings.OutlinedPhantomDisplay)?Settings.GridSquareSize:1),4*((Settings.OutlinedPhantomDisplay)?Settings.GridSquareSize:1));
                 UpdatePhantom(i);
 
             }
@@ -453,27 +523,27 @@ namespace MultiplayerTetris
 
             #region Grid Display
 
-            if (settings.DisplayGrid)
+            if (Settings.DisplayGrid)
             {
 
                 //int x, int y, int width, int height, int x_amount, int y_amount, Color color, int thickness, GraphicsDeviceManager _graphics
-                displayGrid = new Grid(GridOffsetX + DisplayOffsetX, GridOffsetY + settings.GridSquareSize * 4 + DisplayOffsetY,
+                displayGrid = new Grid(gridOffsetX + displayOffsetX, gridOffsetY + Settings.GridSquareSize * 4 + displayOffsetY,
 
-                    settings.GridSquareSize, settings.GridSquareSize,
+                    Settings.GridSquareSize, Settings.GridSquareSize,
 
                     GridWidth,
-                    settings.GridHeight - 4,
+                    Settings.GridHeight - 4,
 
                     Color.Gray, 1, graphics);
 
             }
             else
             {
-                int borderWidth = GridWidth * settings.GridSquareSize;
-                int borderHeight = (settings.GridHeight - 4) * settings.GridSquareSize;
+                int borderWidth = GridWidth * Settings.GridSquareSize;
+                int borderHeight = (Settings.GridHeight - 4) * Settings.GridSquareSize;
 
-                GameBorderGrid = new Color[(GridWidth*settings.GridSquareSize)*(settings.GridHeight*settings.GridSquareSize)];
-                GameBorderTexture = new Texture2D(graphics.GraphicsDevice, (GridWidth * settings.GridSquareSize) , (settings.GridHeight * settings.GridSquareSize));
+                gameBorderGrid = new Color[(GridWidth*Settings.GridSquareSize)*(Settings.GridHeight*Settings.GridSquareSize)];
+                gameBorderTexture = new Texture2D(graphics.GraphicsDevice, (GridWidth * Settings.GridSquareSize) , (Settings.GridHeight * Settings.GridSquareSize));
 
                 int xpos, ypos;
 
@@ -485,7 +555,7 @@ namespace MultiplayerTetris
                     for (int j = 0; j < borderHeight; j++)
                     {
                         ypos = j;
-                        GameBorderGrid[xpos + ypos * borderWidth] = Color.LightGray;
+                        gameBorderGrid[xpos + ypos * borderWidth] = Color.LightGray;
                     }
 
                     ypos = i * borderHeight - i;
@@ -493,73 +563,252 @@ namespace MultiplayerTetris
                     for (int j = 0; j < borderWidth; j++)
                     {
                         xpos = j;
-                        GameBorderGrid[xpos + ypos * borderWidth] = Color.LightGray;
+                        gameBorderGrid[xpos + ypos * borderWidth] = Color.LightGray;
                     }
 
                 }
 
-                GameBorderTexture.SetData(GameBorderGrid);
+                gameBorderTexture.SetData(gameBorderGrid);
                 
             
             }
 
             #endregion
             
-            #region Decorative Border For Buffered & Next Pieces
+            #region Pre Render
 
-            int screenGridWidth = graphics.PreferredBackBufferWidth/settings.GridSquareSize;
-            int screenGridHeight= graphics.PreferredBackBufferHeight/settings.GridSquareSize;
-            backgroundGrid = new Color[screenGridWidth*screenGridHeight];
-            backgroundTexture = new Texture2D(graphics.GraphicsDevice,screenGridWidth,screenGridHeight);
-
-
-            int xOffset;
-            int yOffset;
+            backgroundRenderTarget = new RenderTarget2D(GraphicsDevice,
+                Settings.ScreenWidth,
+                Settings.ScreenHeight,
+                false,SurfaceFormat.Color,DepthFormat.Depth24);
             
-            for (int multI = 1; multI < 2; multI++)
+
+            shakeRenderTarget = new RenderTarget2D(GraphicsDevice,
+                Settings.GridSquareSize * gameTexture.Width,
+                Settings.GridSquareSize * (gameTexture.Height-4),
+                false,SurfaceFormat.Color,DepthFormat.Depth24);
+            
+            nextPiecesRenderTarget = new RenderTarget2D(GraphicsDevice,
+                (nextPiecesTextures[0].Width * Settings.GridSquareSize / 2 + 3),
+                (nextPiecesTextures[0].Height * Settings.GridSquareSize / 2 + Settings.GridSquareSize + 3),
+                false,SurfaceFormat.Color,DepthFormat.Depth24);
+
+            bufferPieceRenderTarget = new RenderTarget2D(GraphicsDevice,
+                (bufferedPieceTextures[0].Width + 1) * Settings.GridSquareSize + 3,
+                (bufferedPieceTextures[0].Height + 1) * Settings.GridSquareSize + 3,
+                false,SurfaceFormat.Color,DepthFormat.Depth24);
+            
+
+            
+            spriteBatch = new SpriteBatch(GraphicsDevice);
+            background = Texture2D.FromFile(graphics.GraphicsDevice,Path.Combine("Content", "img", "background.png"));
+            spriteFont = Content.Load<SpriteFont>(Path.Combine("font", "DebugFont"));
+            
+            
+            spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointWrap);
+
+            #region background
+            
+
+            float imageAspectRatioWidth = (float)background.Height/background.Width;
+            float imageAspectRatioHeight = (float)background.Width/background.Height;
+            
+            int newWidth = Settings.ScreenWidth;
+            int newHeight = (int) (newWidth * imageAspectRatioWidth);
+            
+            if (newHeight < Settings.ScreenHeight)
             {
-                            
-                xOffset = (multI*BufferedPieceX) + DisplayOffsetX - settings.GridSquareSize*2*(multI-1);
-                yOffset = BufferedPieceY + DisplayOffsetY;
-
-                xOffset /= settings.GridSquareSize;
-                yOffset /= settings.GridSquareSize;
-
-                for (int i = 0; i < 5; i++)
-                {
-                    for (int j = 0; j < 3; j++)
-                    {
-                        backgroundGrid[(xOffset + i) + (yOffset + j) * screenGridWidth] = Color.Black;
-
-                    }
-                }
-                
-                
-                
-                xOffset = NextPiecesX + DisplayOffsetX + 7*settings.GridSquareSize*(multI-1);
-                yOffset = NextPiecesY + DisplayOffsetY;
-            
-                xOffset /= settings.GridSquareSize;
-                yOffset /= settings.GridSquareSize;
-            
-                for (int i = 0; i < 5; i++)
-                {
-                    for (int j = 0; j < 3* settings.NextPiecesAmount +1; j++)
-                    {
-                        backgroundGrid[(xOffset + i) + (yOffset + j)*screenGridWidth] = Color.Black;
-                    }
-                }
-                
-                
-                
+                newHeight = Settings.ScreenHeight;
+                newWidth = (int) (newHeight * imageAspectRatioHeight);
             }
+            
+            int dimming = 100;
+            spriteBatch.Draw(background,
+                new Microsoft.Xna.Framework.Rectangle((int)(((float)Settings.ScreenWidth - newWidth)/2), (int)(((float)Settings.ScreenHeight - newHeight)/2),
+                    newWidth,newHeight),
+                new Color(dimming,dimming,dimming,dimming));
+            
+            #endregion
+            
+            GraphicsDevice.SetRenderTarget(backgroundRenderTarget);
+            spriteBatch.End();
+            
+            GraphicsDevice.SetRenderTarget(null);
+            
+            
+            nameRenderTargets = new RenderTarget2D[Settings.NumPlayers];
+            nameOffsets = new int[Settings.NumPlayers];
+            
+            for (int i = 0; i < Settings.NumPlayers; i++)
+            {
+                
+                
+                String nameText = playerControllerManager.GetName(Settings.ControlsUsedPreset,i);
 
+                nameOffsets[i] = (Settings.GridSquareSize * 4 - (nameText.Length * 27)) / 2;
+                
+                nameRenderTargets[i] = new RenderTarget2D(GraphicsDevice,
+                    27*nameText.Length,27,
+                    false,SurfaceFormat.Color,DepthFormat.Depth24);
+                
+                spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointWrap);
+                GraphicsDevice.SetRenderTarget(nameRenderTargets[i]);
+                GraphicsDevice.Clear(Color.Transparent);
+                
+                
+                spriteBatch.DrawString(spriteFont, nameText,
+                    new Vector2(0,0)
+                    , Color.Gray, 0f, Vector2.Zero
+                    , new Vector2(1, 1), SpriteEffects.None, 0f);
+                
+                
+                spriteBatch.End();
+                GraphicsDevice.SetRenderTarget(null);
+            }
+            
+            
+            spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointWrap);
+            GraphicsDevice.SetRenderTarget(shakeRenderTarget);
+            GraphicsDevice.Clear(Color.Black);
+            
+            #region shake
+            
+    
+            if (Settings.DisplayGrid)
+            {
+                if (Settings.GridUnderneath)
+                {
+                    // draw the grid
+                    displayGrid.Draw(spriteBatch, graphics);
+                }
 
+            }
+            else
+            {
+                spriteBatch.Draw(gameBorderTexture,
+                    new Vector2(0,0),
+                    Color.White);
+            }
+            
 
+            #endregion
+
+            spriteBatch.End();
+            GraphicsDevice.SetRenderTarget(null);
             
             
             
-            backgroundTexture.SetData(backgroundGrid);
+            spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointWrap);
+            GraphicsDevice.SetRenderTarget(bufferPieceRenderTarget);
+            GraphicsDevice.Clear(Color.Black);
+            
+            #region buffer piece
+            
+            spriteBatch.Draw(whitePixel,
+                new Microsoft.Xna.Framework.Rectangle(0,
+                    0,
+                    1,
+                    (bufferedPieceTextures[0].Height + 1) * Settings.GridSquareSize + 2),
+                Color.White);
+
+            spriteBatch.Draw(whitePixel,
+                new Microsoft.Xna.Framework.Rectangle(
+                    (bufferedPieceTextures[0].Width + 1) * Settings.GridSquareSize + 2,
+                    0,
+                    1,
+                    (bufferedPieceTextures[0].Height + 1) * Settings.GridSquareSize + 2),
+                Color.White);
+
+            spriteBatch.Draw(whitePixel,
+                new Microsoft.Xna.Framework.Rectangle(0,
+                    0,
+                    (bufferedPieceTextures[0].Width + 1) * Settings.GridSquareSize + 2,
+                    1),
+                Color.White);
+
+            spriteBatch.Draw(whitePixel,
+                new Microsoft.Xna.Framework.Rectangle(0,
+                    (bufferedPieceTextures[0].Height + 1) * Settings.GridSquareSize + 2,
+                    (bufferedPieceTextures[0].Width + 1) * Settings.GridSquareSize + 2,
+                    1),
+                Color.White);
+
+            #endregion
+
+            spriteBatch.End();
+            GraphicsDevice.SetRenderTarget(null);
+            
+            
+            spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointWrap);
+            GraphicsDevice.SetRenderTarget(nextPiecesRenderTarget);
+            GraphicsDevice.Clear(Color.Black);
+            
+            #region next pieces
+            
+            #region 4 lines for next pieces
+
+            spriteBatch.Draw(whitePixel,
+                new Microsoft.Xna.Framework.Rectangle(0,
+                    0,
+                    1,
+                    nextPiecesTextures[0].Height * Settings.GridSquareSize / 2 + Settings.GridSquareSize + 2),
+                Color.White);
+
+            spriteBatch.Draw(whitePixel,
+                new Microsoft.Xna.Framework.Rectangle(
+                    nextPiecesTextures[0].Width * Settings.GridSquareSize / 2 + 2,
+                    0,
+                    1,
+                    nextPiecesTextures[0].Height * Settings.GridSquareSize / 2 + Settings.GridSquareSize + 2),
+                Color.White);
+
+            spriteBatch.Draw(whitePixel,
+                new Microsoft.Xna.Framework.Rectangle(0,
+                    0,
+                    nextPiecesTextures[0].Width * Settings.GridSquareSize / 2 + 2,
+                    1),
+                Color.White);
+
+            spriteBatch.Draw(whitePixel,
+                new Microsoft.Xna.Framework.Rectangle(0,
+                    nextPiecesTextures[0].Height * Settings.GridSquareSize / 2 +
+                    Settings.GridSquareSize + 2,
+                    nextPiecesTextures[0].Width * Settings.GridSquareSize / 2 + 2,
+                    1),
+                Color.White);
+
+            #endregion
+            
+            #endregion
+            
+            spriteBatch.End();
+            GraphicsDevice.SetRenderTarget(null);
+            
+            
+            #endregion
+            
+            #region Rects
+            
+            playerPiecesRect = new Microsoft.Xna.Framework.Rectangle(
+                Settings.GridSquareSize + displayOffsetX,
+                Settings.GridSquareSize + displayOffsetY,
+                Settings.GridSquareSize * gameTexture2.Width, Settings.GridSquareSize * gameTexture2.Height);
+            
+            nextPiecesRect = new Microsoft.Xna.Framework.Rectangle(
+                (nextPiecesX + displayOffsetX),
+                (nextPiecesY + displayOffsetY),
+                nextPiecesTextures[0].Width * Settings.GridSquareSize / 2,
+                nextPiecesTextures[0].Height * Settings.GridSquareSize / 2);
+            
+            placedPiecesRect = new Microsoft.Xna.Framework.Rectangle(
+                Settings.GridSquareSize + displayOffsetX,
+                Settings.GridSquareSize + displayOffsetY,
+                Settings.GridSquareSize * gameTexture.Width, Settings.GridSquareSize * gameTexture.Height);
+
+            bufferedPieceRect = new Microsoft.Xna.Framework.Rectangle((bufferedPieceX + displayOffsetX),
+                (bufferedPieceY + displayOffsetY),
+                bufferedPieceTextures[0].Width * Settings.GridSquareSize,
+                bufferedPieceTextures[0].Height * Settings.GridSquareSize);
             
             #endregion
             
@@ -568,7 +817,7 @@ namespace MultiplayerTetris
 
         protected override void LoadContent()
         {
-            spriteBatch = new SpriteBatch(GraphicsDevice);
+            
             
             #region Sound Effect Loading
     
@@ -578,21 +827,9 @@ namespace MultiplayerTetris
             sePerfect = SoundEffect.FromFile(Path.Combine("Content", "se", "perfect.wav"));
             
             #endregion
-            
-            #region Font Loading
-            
-            spriteFont = Content.Load<SpriteFont>(Path.Combine("font", "DebugFont"));
-            
-            #endregion
-            
-            #region Image Loading
 
-
-            background = Texture2D.FromFile(graphics.GraphicsDevice,Path.Combine("Content", "img", "background.png"));
-            
             
 
-            #endregion
 
         }
         
@@ -622,15 +859,29 @@ namespace MultiplayerTetris
         
         private Tetromino.Type[] GenerateBag()
         {
-            Tetromino.Type[] bag = new Tetromino.Type[7];
 
-            int i = 0;
-            foreach (Tetromino.Type p in tetrominoTypes)
+            if (DeveloperMode)
             {
-                bag[i++] = p;
-            }
+                Tetromino.Type[] bag = new Tetromino.Type[7];
+                for (int i = 0; i < 7; i++)
+                {
+                    bag[i] = Tetromino.Type.I;
+                }
 
-            return bag.OrderBy((item) => random.Next()).ToArray();
+                return bag;
+            }
+            else
+            {
+                Tetromino.Type[] bag = new Tetromino.Type[7];
+
+                int i = 0;
+                foreach (Tetromino.Type p in tetrominoTypes)
+                {
+                    bag[i++] = p;
+                }
+
+                return bag.OrderBy((item) => random.Next()).ToArray();
+            }
         }
         
         private List<Vector2> LowestSquares(List<Vector2> squares)
@@ -677,19 +928,19 @@ namespace MultiplayerTetris
             }
             
 
-            int minimumMove = settings.GridHeight;
+            int minimumMove = Settings.GridHeight;
             for (int j = 0; j < lowestSquares.Count; j++)
             {
-                int highestInLine = settings.GridHeight - 1;
+                int highestInLine = Settings.GridHeight - 1;
                 
                 // loop k from the lowest square of the tetromino down to the bottom of the grid
-                for (int k = ((int) (lowestSquares[j].Y + positions[currentPieceIndex][1]) / settings.GridSquareSize); k < settings.GridHeight; k++)
+                for (int k = ((int) (lowestSquares[j].Y + positions[currentPieceIndex][1]) / Settings.GridSquareSize); k < Settings.GridHeight; k++)
                 {
-                    int xCheck = (int) (lowestSquares[j].X + positions[currentPieceIndex][0]) / settings.GridSquareSize - 1;
+                    int xCheck = (int) (lowestSquares[j].X + positions[currentPieceIndex][0]) / Settings.GridSquareSize - 1;
                     int yCheck = GridWidth * k;
                     
                     // if out of bounds
-                    if (xCheck < 0 || xCheck >= GridWidth || yCheck < 0 || yCheck >= GridWidth*settings.GridHeight)
+                    if (xCheck < 0 || xCheck >= GridWidth || yCheck < 0 || yCheck >= GridWidth*Settings.GridHeight)
                     {
                         break;
                     }
@@ -704,7 +955,7 @@ namespace MultiplayerTetris
                 
                 // get current actual y position (relative to the bottom of the tetromino)
                 int gridY = (int) lowestSquares[j].Y + positions[currentPieceIndex][1];
-                gridY /= settings.GridSquareSize;
+                gridY /= Settings.GridSquareSize;
                 
                 // work out the minimum of all distances between the
                 // bottom of the tetromino and the top of the stack at that x-pos
@@ -714,6 +965,7 @@ namespace MultiplayerTetris
             return minimumMove;
         }
         
+        /*
         private void MoveCheck(int minX, int maxX, int currentPieceIndex)
         {
 
@@ -737,6 +989,7 @@ namespace MultiplayerTetris
             }
             
         }
+        */
         
         private readonly struct KickResult
         {
@@ -777,7 +1030,7 @@ namespace MultiplayerTetris
             List<Vector2> rotatedSquares = new List<Vector2>();
             foreach (Rectangle r in currentPiece._r)
             {
-                rotatedSquares.AddRange(Rectangle.RectToSquares(r,settings.GridSquareSize));
+                rotatedSquares.AddRange(Rectangle.RectToSquares(r,Settings.GridSquareSize));
             }
             
             Vector2[] kickTransforms = Kick.GetWallKick(currentPiece.BlockType, lastRotation, newRotation);
@@ -788,12 +1041,12 @@ namespace MultiplayerTetris
                 
                 foreach (Vector2 sq in rotatedSquares)
                 {
-                    int xCheck = (int) ((sq.X + positions[currentPieceIndex][0]) / settings.GridSquareSize + transform.X) -1;
-                    int yCheck = (int) ((sq.Y + positions[currentPieceIndex][1]) / settings.GridSquareSize + transform.Y);
+                    int xCheck = (int) ((sq.X + positions[currentPieceIndex][0]) / Settings.GridSquareSize + transform.X) -1;
+                    int yCheck = (int) ((sq.Y + positions[currentPieceIndex][1]) / Settings.GridSquareSize + transform.Y);
                     yCheck *= GridWidth;
                     
                     
-                    if (xCheck>=GridWidth || xCheck<0 || yCheck<0 || yCheck>=GridWidth*settings.GridHeight)
+                    if (xCheck>=GridWidth || xCheck<0 || yCheck<0 || yCheck>=GridWidth*Settings.GridHeight)
                     {
                         possible = false;
                         break;
@@ -826,7 +1079,7 @@ namespace MultiplayerTetris
 
                 List<int> toDestroy = new List<int>();
             
-                for (int j = 0; j < GridWidth*settings.GridHeight; j+=GridWidth)
+                for (int j = 0; j < GridWidth*Settings.GridHeight; j+=GridWidth)
                 {
 
                     bool row = true;
@@ -842,12 +1095,38 @@ namespace MultiplayerTetris
                     }
                 
                 }
-            
-                foreach(int d in toDestroy)
+
+                if (!DeveloperMode)
                 {
-                    for (int i = 0; i < GridWidth; i++)
+
+
+                    foreach (int d in toDestroy)
                     {
-                        gameGrid[d + i] = Color.Transparent;
+                        for (int i = 0; i < GridWidth; i++)
+                        {
+                            gameGrid[d + i] = Color.Transparent;
+                        }
+                    }
+
+                }
+                else
+                {
+                    
+                    gameGrid = new Color[GridWidth * Settings.GridHeight];
+                    
+                    for (int i = 0; i < GridWidth - 1; i++)
+                    {
+                        for (int j = Settings.GridHeight - 16; j < Settings.GridHeight; j++)
+                        {
+                            int xPos = i;
+                            int yPos = j * GridWidth;
+
+                            int b = (int)(i * (255f / ((float)GridWidth - 1)));
+                            int g = 255 - (int)((float)(j - (Settings.GridHeight - 17)) * 16f);
+                            int r = 255 - b;
+
+                            gameGrid[xPos + yPos] = new Color(r, g, b);
+                        }
                     }
                 }
 
@@ -858,17 +1137,19 @@ namespace MultiplayerTetris
                 if (downwards != 0)
                 {
 
-                    int rows_cleared = downwards;
-                
-                    Color[] newGrid = new Color[GridWidth*settings.GridHeight];
+                    int rowsCleared = downwards;
+                    
+                    if (!DeveloperMode)
+                    {
+                    Color[] newGrid = new Color[GridWidth*Settings.GridHeight];
                     gameGrid.CopyTo(newGrid,0);
                 
-                    for (int j = 0; j < GridWidth*settings.GridHeight; j += GridWidth)
+                    for (int j = 0; j < GridWidth*Settings.GridHeight; j += GridWidth)
                     {
                     
                         for (int i = 0; i < GridWidth; i++)
                         {
-                            if (j + (downwards * GridWidth) + i < GridWidth*settings.GridHeight)
+                            if (j + (downwards * GridWidth) + i < GridWidth*Settings.GridHeight)
                             {
                                 newGrid[j + (downwards * GridWidth) + i] = gameGrid[j+i];
                             }
@@ -878,40 +1159,86 @@ namespace MultiplayerTetris
                         if (toDestroy.Contains(j)) downwards--;
 
                     }
-                
-                    newGrid.CopyTo(gameGrid,0);
+
+                    newGrid.CopyTo(gameGrid, 0);
+                    
+                    
+                    }
 
                     displayingPointsEffect = true;
                     pointsCurrentAlpha = 255;
                     pointsColor = new Color(pointsCurrentAlpha, pointsCurrentAlpha, pointsCurrentAlpha, pointsCurrentAlpha);
-                    TotalRowsCleared += rows_cleared;
-                    switch (rows_cleared)
+                    totalRowsCleared += rowsCleared;
+
+                    combo += 1;
+                    if (combo > 1)
+                    {
+                        comboCurrentAlpha = 255f;
+                        displayingComboEffect = true;
+                        comboColor = new Color(comboCurrentAlpha,comboCurrentAlpha,comboCurrentAlpha,comboCurrentAlpha);
+                        comboEffectText = "x"+combo;
+                    }
+                    else
+                    {
+                        comboCurrentAlpha = 0f;
+                        displayingComboEffect = false;
+                        comboColor = Color.Transparent;
+                        comboEffectText = "";
+                    }
+
+                    if (rowsCleared == 4)
+                    {
+                        b2b++;
+                        b2bCurrentAlpha = 255f;
+                        displayingB2BEffect = true;
+                        b2bColor = new Color(b2bCurrentAlpha,b2bCurrentAlpha,b2bCurrentAlpha,b2bCurrentAlpha);
+                        b2bEffectText = b2b + "";
+
+                    }else { b2b*=0; }
+
+                    int incr;
+                    
+                    switch (rowsCleared)
                     {
                         case 1:
-                            points += 40;
-                            pointEffectText = "40";
+                            incr = 40 * combo;
+                            points += incr;
+                            pointEffectText = ""+incr;
                             seClearRow.Play();
                             break;
                         case 2:
-                            points += 100;
-                            pointEffectText = "100";
+                            incr = 100 * combo;
+                            points += incr;
+                            pointEffectText = ""+incr;
                             seClearRow.Play();
                             break;
                         case 3:
-                            points += 300;
-                            pointEffectText = "300";
+                            incr = 300 * combo;
+                            points += incr;
+                            pointEffectText = ""+incr;
                             seClearRow.Play();
                             break;
                         case 4:
-                            points += 1200;
-                            pointEffectText = "1200";
+                            incr = 1200 * combo;
+                            points += incr;
+                            pointEffectText = ""+incr;
                             // tetris :000000000000000000!!!!! no way omg look how cool
                             sePerfect.Play();
                             shakeY += 11f;
                             break;
                     }
 
+                    
+                    pointsDisplayPos = new Vector2(
+                        Settings.GridSquareSize + displayOffsetX + (int) shakeX +
+                        ((float) GridWidth / 2f) * Settings.GridSquareSize - ((float) ((points + "").Length) * 20.25f),
+                        Settings.GridSquareSize + displayOffsetY + (int) shakeY +
+                        Settings.GridHeight * Settings.GridSquareSize + 12);
 
+                }
+                else
+                {
+                    combo *= 0;
                 }
             
         }
@@ -925,12 +1252,12 @@ namespace MultiplayerTetris
 
             foreach (Rectangle r in currentPiece._r)
             {
-                squares.AddRange(Rectangle.RectToSquares(r,settings.GridSquareSize));
+                squares.AddRange(Rectangle.RectToSquares(r,Settings.GridSquareSize));
             }
 
-            if (settings.OutlinedPhantomDisplay)
+            if (Settings.OutlinedPhantomDisplay)
             {
-                phantomDropGrids[currentPieceIndex] = new Color[16* settings.GridSquareSize*settings.GridSquareSize];
+                phantomDropGrids[currentPieceIndex] = new Color[16* Settings.GridSquareSize*Settings.GridSquareSize];
 
                 List<Vector2> minX = new List<Vector2>();
                 List<Vector2> maxX = new List<Vector2>();
@@ -997,26 +1324,26 @@ namespace MultiplayerTetris
                 }
                 
 
-                for (int i = 0; i < settings.GridSquareSize; i++)
+                for (int i = 0; i < Settings.GridSquareSize; i++)
                 {
                     foreach (Vector2 pos in minX)
                     {
-                        phantomDropGrids[currentPieceIndex][(int)(pos.X+ + (pos.Y+i) * (4*settings.GridSquareSize))] = Color.White;
+                        phantomDropGrids[currentPieceIndex][(int)(pos.X+ + (pos.Y+i) * (4*Settings.GridSquareSize))] = Color.White;
                     }
                 
                     foreach (Vector2 pos in maxX)
                     {
-                        phantomDropGrids[currentPieceIndex][(int)(pos.X + settings.GridSquareSize -1 + (pos.Y+i) * (4*settings.GridSquareSize))] = Color.White;
+                        phantomDropGrids[currentPieceIndex][(int)(pos.X + Settings.GridSquareSize -1 + (pos.Y+i) * (4*Settings.GridSquareSize))] = Color.White;
                     }
                     
                     foreach (Vector2 pos in minY)
                     {
-                        phantomDropGrids[currentPieceIndex][(int)(pos.X+i + (pos.Y) * (4*settings.GridSquareSize))] = Color.White;
+                        phantomDropGrids[currentPieceIndex][(int)(pos.X+i + (pos.Y) * (4*Settings.GridSquareSize))] = Color.White;
                     }
                     
                     foreach (Vector2 pos in maxY)
                     {
-                        phantomDropGrids[currentPieceIndex][(int)(pos.X+i + (pos.Y+settings.GridSquareSize-1) * (4*settings.GridSquareSize))] = Color.White;
+                        phantomDropGrids[currentPieceIndex][(int)(pos.X+i + (pos.Y+Settings.GridSquareSize-1) * (4*Settings.GridSquareSize))] = Color.White;
                     }
                     
                     
@@ -1032,16 +1359,16 @@ namespace MultiplayerTetris
                 phantomDropGrids[currentPieceIndex] = new Color[16];
                 foreach (Vector2 square in squares)
                 {
-                    int x = (int) (square.X / settings.GridSquareSize);
-                    int y = (int) (square.Y / settings.GridSquareSize);
+                    int x = (int) (square.X / Settings.GridSquareSize);
+                    int y = (int) (square.Y / Settings.GridSquareSize);
                 
                     Color currentColour;// = phantomColourDefault;
 
-                    if (settings.PerPlayerPhantomColours)
+                    if (Settings.PerPlayerPhantomColours)
                     {
-                        if (currentPieceIndex < settings.PhantomColours.Length)
+                        if (currentPieceIndex < Settings.PhantomColours.Length)
                         {
-                            currentColour = settings.PhantomColours[currentPieceIndex];
+                            currentColour = Settings.PhantomColours[currentPieceIndex];
                         }
                         else
                         {
@@ -1069,8 +1396,10 @@ namespace MultiplayerTetris
             int minimumMove = MinimumMove(squares,currentPieceIndex,false);
 
             minimumMove++;
-            phantomPositions[currentPieceIndex].Y = positions[currentPieceIndex][1] + minimumMove * settings.GridSquareSize;
+            phantomPositions[currentPieceIndex].Y = positions[currentPieceIndex][1] + minimumMove * Settings.GridSquareSize 
+                    -((currentPieces[currentPieceIndex].BlockType == Tetromino.Type.O) ? Settings.GridSquareSize : 0);
 
+            
 
         }
         
@@ -1085,7 +1414,7 @@ namespace MultiplayerTetris
 
                 foreach (Rectangle r in Tetromino.Rectangles[(int)bufferedPieces[currentPieceIndex]])
                 {
-                    squares.AddRange(Rectangle.RectToSquares(r,settings.GridSquareSize));
+                    squares.AddRange(Rectangle.RectToSquares(r,Settings.GridSquareSize));
                 }
 
                 int yOffset = 0;
@@ -1094,8 +1423,8 @@ namespace MultiplayerTetris
                 
                 foreach (Vector2 sq in squares)
                 {
-                    int x = (int) sq.X / settings.GridSquareSize;
-                    int y = ((int) sq.Y / settings.GridSquareSize) + yOffset;
+                    int x = (int) sq.X / Settings.GridSquareSize;
+                    int y = ((int) sq.Y / Settings.GridSquareSize) + yOffset;
 
                     bufferedPieceGrids[currentPieceIndex][x + y * 4] = (swapped[currentPieceIndex])?Color.Gray:CurrentColorPalette[bufferedPieces[currentPieceIndex]];
                 }
@@ -1119,24 +1448,24 @@ namespace MultiplayerTetris
             int next = 0;
             foreach (Tetromino.Type piece in pieceQueues[currentPieceIndex])
             {
-                if (next++ == settings.NextPiecesAmount)
+                if (next++ == Settings.NextPiecesAmount)
                 {
                     break;
                 }
 
-                if (!settings.BlockDisplayMode)
+                if (!Settings.BlockDisplayMode)
                 {
                     List<Vector2> squares = new List<Vector2>();
 
                     foreach (Rectangle r in Tetromino.Rectangles[(int)piece])
                     {
-                        squares.AddRange(Rectangle.RectToSquares(r,settings.GridSquareSize));
+                        squares.AddRange(Rectangle.RectToSquares(r,Settings.GridSquareSize));
                     }
 
                     foreach (Vector2 sq in squares)
                     {
-                        x = 2*((int) sq.X / (settings.GridSquareSize));
-                        int yTemp = y + 2*((int) sq.Y / (settings.GridSquareSize));
+                        x = 2*((int) sq.X / (Settings.GridSquareSize));
+                        int yTemp = y + 2*((int) sq.Y / (Settings.GridSquareSize));
 
                         if (piece != Tetromino.Type.O)
                         {
@@ -1202,7 +1531,7 @@ namespace MultiplayerTetris
                     }
                 }
 
-                if (settings.BlockDisplayMode) y += 1;
+                if (Settings.BlockDisplayMode) y += 1;
             }
 
             nextPiecesTextures[currentPieceIndex].SetData(nextPiecesGrids[currentPieceIndex]);
@@ -1210,7 +1539,7 @@ namespace MultiplayerTetris
 
         private Vector3 GetAudioPosition(int currentPieceIndex)
         {
-            double angle = ((double) positions[currentPieceIndex][0]) / ((double) GridWidth*settings.GridSquareSize);
+            double angle = positions[currentPieceIndex][0] / ((double) GridWidth*Settings.GridSquareSize);
 
             angle *= 0.7;
             angle += 0.15;
@@ -1230,6 +1559,14 @@ namespace MultiplayerTetris
         protected override void Update(GameTime gameTime)
         {
             
+            
+            
+            deltaTime = (float) gameTime.ElapsedGameTime.TotalSeconds;
+            frameCounter.Update(deltaTime);
+
+            deltaTime *= 60;
+            
+            
             inputHandler.UpdateState();
 
             // quit
@@ -1243,7 +1580,7 @@ namespace MultiplayerTetris
                 #region Apply Gravity
                 
                 // if it has gone down by a square
-                if ((int) realPositionsY[currentPieceIndex] > settings.GridSquareSize)
+                if ((int) realPositionsY[currentPieceIndex] > Settings.GridSquareSize)
                 {
                     // reset delta y
                     realPositionsY[currentPieceIndex] = 0f;
@@ -1252,7 +1589,7 @@ namespace MultiplayerTetris
                     List<Vector2> squares = new List<Vector2>();
                     foreach (Rectangle r in currentPieces[currentPieceIndex]._r)
                     {
-                        squares.AddRange(Rectangle.RectToSquares(r, settings.GridSquareSize));
+                        squares.AddRange(Rectangle.RectToSquares(r, Settings.GridSquareSize));
                     }
                     
                     // find minimum movement downwards until placement
@@ -1261,7 +1598,7 @@ namespace MultiplayerTetris
                     if (minimumMove > 0)
                     {
                         // move downwards
-                        positions[currentPieceIndex][1] += settings.GridSquareSize;
+                        positions[currentPieceIndex][1] += Settings.GridSquareSize;
                         if (gravityMultipliers[currentPieceIndex] > 1f)
                         {
                             // play fast_scroll
@@ -1281,12 +1618,12 @@ namespace MultiplayerTetris
                         foreach (Vector2 square in squares)
                         {
                             // set square on game grid
-                            gameGrid[((int) ((square.X + positions[currentPieceIndex][0]) / settings.GridSquareSize) - 1) +             // x position
-                                     ((((int) ((square.Y + positions[currentPieceIndex][1]) / settings.GridSquareSize))) * GridWidth)]  // y position
+                            gameGrid[((int) ((square.X + positions[currentPieceIndex][0]) / Settings.GridSquareSize) - 1) +             // x position
+                                     ((((int) ((square.Y + positions[currentPieceIndex][1]) / Settings.GridSquareSize))) * GridWidth)]  // y position
                                 
                                 = CurrentColorPalette[currentPieces[currentPieceIndex].BlockType];                             // current block's colour
                             
-                            if ((int)((square.Y + positions[currentPieceIndex][1]) / settings.GridSquareSize) < 3)
+                            if ((int)((square.Y + positions[currentPieceIndex][1]) / Settings.GridSquareSize) < 3)
                             {
                                 lost = true;
                             }
@@ -1294,9 +1631,9 @@ namespace MultiplayerTetris
 
                         if (lost)
                         {
-                            gameGrid = new Color[GridWidth * settings.GridHeight];
+                            gameGrid = new Color[GridWidth * Settings.GridHeight];
                             
-                            for (int p = 0; p < settings.NumPlayers; p++)
+                            for (int p = 0; p < Settings.NumPlayers; p++)
                             {
                                 UpdatePhantom(p);
                             }
@@ -1313,10 +1650,15 @@ namespace MultiplayerTetris
 
 
 
-                        positions[currentPieceIndex][0] = XSpawnPosition + GridOffsetX + XSpawnOffset*currentPieceIndex;
-                        positions[currentPieceIndex][1] = YSpawnPosition + GridOffsetY;
+                        positions[currentPieceIndex][0] = xSpawnPosition + gridOffsetX + xSpawnOffset*currentPieceIndex;
+                        positions[currentPieceIndex][1] = ySpawnPosition + gridOffsetY;
 
                         currentPieces[currentPieceIndex] = NextRandom(currentPieceIndex);
+
+                        if (currentPieces[currentPieceIndex].BlockType == Tetromino.Type.O)
+                        {
+                            positions[currentPieceIndex][1] -= 1;
+                        }
 
                         currentPieces[currentPieceIndex].Update();
                         
@@ -1328,18 +1670,15 @@ namespace MultiplayerTetris
                         Destroy();
 
                         shakeY += 6f;
-                        
-                            
 
-
-                        for (int player = 0; player < settings.NumPlayers; player++)
+                        for (int player = 0; player < Settings.NumPlayers; player++)
                         {
 
                             List<Vector2> currentSquares = new List<Vector2>();
                             
                             foreach (Rectangle r in currentPieces[player]._r)
                             {
-                                currentSquares.AddRange(Rectangle.RectToSquares(r, settings.GridSquareSize));
+                                currentSquares.AddRange(Rectangle.RectToSquares(r, Settings.GridSquareSize));
                             }
                             
                             foreach (Vector2 square in currentSquares)
@@ -1349,8 +1688,8 @@ namespace MultiplayerTetris
 
                                 while (true)
                                 {
-                                    int xCheck = (int) (square.X + positions[player][0]) / settings.GridSquareSize;
-                                    int yCheck = (int) (square.Y + positions[player][1]) / settings.GridSquareSize;
+                                    int xCheck = (int) (square.X + positions[player][0]) / Settings.GridSquareSize;
+                                    int yCheck = (int) (square.Y + positions[player][1]) / Settings.GridSquareSize;
                                     yCheck -= push;
                                     xCheck -= 1;
 
@@ -1364,7 +1703,7 @@ namespace MultiplayerTetris
                                         // push up until no longer stuck
                                         push++;
 
-                                        if (!settings.PushUp)
+                                        if (!Settings.PushUp)
                                         {
                                             break;
                                         }
@@ -1381,18 +1720,18 @@ namespace MultiplayerTetris
                                 if (push != 0)
                                 {
 
-                                    if (settings.PushUp)
+                                    if (Settings.PushUp)
                                     {
                                         // if piece needs to be pushed up
 
                                         // push piece up
-                                        positions[player][1] -= (push + 2) * settings.GridSquareSize;
+                                        positions[player][1] -= (push + 2) * Settings.GridSquareSize;
                                     }
                                     else
                                     {
-                                        positions[player][0] = XSpawnPosition + GridOffsetX +
-                                                               XSpawnOffset * player;
-                                        positions[player][1] = YSpawnPosition + GridOffsetY;
+                                        positions[player][0] = xSpawnPosition + gridOffsetX +
+                                                               xSpawnOffset * player;
+                                        positions[player][1] = ySpawnPosition + gridOffsetY;
                                     }
 
                                 }
@@ -1400,13 +1739,8 @@ namespace MultiplayerTetris
                         }
 
 
-
-
-
-
-
                         // update all phantoms
-                        for (int it = 0; it < settings.NumPlayers; it++) { UpdatePhantom(it); }
+                        for (int it = 0; it < Settings.NumPlayers; it++) { UpdatePhantom(it); }
                         
                     }
 
@@ -1481,19 +1815,59 @@ namespace MultiplayerTetris
                 
                 #region Movement and Rotation
                 
-                bool rotateRightPressed = inputHandler.KeyPressed(playerControllerManager.GetControl(settings.ControlsUsedPreset, currentPieceIndex, Controls.RotateRight));
-                bool rotateLeftPressed = inputHandler.KeyPressed(playerControllerManager.GetControl(settings.ControlsUsedPreset, currentPieceIndex, Controls.RotateLeft));
-                bool moveRightPressed = inputHandler.TimedPress(playerControllerManager.GetControl(settings.ControlsUsedPreset, currentPieceIndex, Controls.MoveRight), settings.InputSpeed, settings.InputWait);
-                bool moveLeftPressed = inputHandler.TimedPress(playerControllerManager.GetControl(settings.ControlsUsedPreset, currentPieceIndex, Controls.MoveLeft),settings.InputSpeed,settings.InputWait);
+                
+                bool rotateRightPressed = inputHandler.KeyPressed(playerControllerManager.GetControl(Settings.ControlsUsedPreset, currentPieceIndex, Controls.RotateRight));
+                bool rotateLeftPressed = inputHandler.KeyPressed(playerControllerManager.GetControl(Settings.ControlsUsedPreset, currentPieceIndex, Controls.RotateLeft));
+                moveRightPressed = (!rightLock) && (inputHandler.TimedPress(playerControllerManager.GetControl(Settings.ControlsUsedPreset, currentPieceIndex, Controls.MoveRight),
+                    Settings.InputSpeed, Settings.InputWait, deltaTime,false));
+                moveLeftPressed = (!leftLock) && (inputHandler.TimedPress(playerControllerManager.GetControl(Settings.ControlsUsedPreset, currentPieceIndex, Controls.MoveLeft),
+                    Settings.InputSpeed,Settings.InputWait, deltaTime,false));
 
+                bool moveRightHeld = (inputHandler.TimedPress(playerControllerManager.GetControl(Settings.ControlsUsedPreset, currentPieceIndex, Controls.MoveRight),
+                    Settings.InputSpeed, Settings.InputWait, deltaTime,true));
+                bool moveLeftHeld = (inputHandler.TimedPress(playerControllerManager.GetControl(Settings.ControlsUsedPreset, currentPieceIndex, Controls.MoveLeft),
+                    Settings.InputSpeed,Settings.InputWait, deltaTime,true));
+                
+                bool moveRightExtraCheck = (collidingRight&&gravityMultipliers[currentPieceIndex]>1) && moveRightHeld;
+                bool moveLeftExtraCheck = (collidingLeft&&gravityMultipliers[currentPieceIndex]>1) && moveLeftHeld;
+                
+
+
+                if (moveRightHeld && moveLeftHeld && !rightLock && !leftLock)
+                {
+
+                    if (lastRight && !lastLeft)
+                    {
+                        rightLock = true;
+                    }
+
+                    if (lastLeft && !lastRight)
+                    {
+                        leftLock = true;
+                    }
+                }
+
+                
+                
+                if (moveRightExtraCheck)
+                {
+                    moveRightPressed = false;
+                }
+
+                if (moveLeftExtraCheck)
+                {
+                    moveLeftPressed = false;
+                }
+                
+                
                 if (rotateRightPressed)
                 {
                     // kick handles all rotation - rotation direction 1, as in clockwise
                     KickResult result = CheckKick(1, currentPieceIndex);
                     if (result.Succeeded)
                     {
-                        positions[currentPieceIndex][0] += (int) (settings.GridSquareSize * result.Result.X);
-                        positions[currentPieceIndex][1] += (int) (settings.GridSquareSize * result.Result.Y);
+                        positions[currentPieceIndex][0] += (int) (Settings.GridSquareSize * result.Result.X);
+                        positions[currentPieceIndex][1] += (int) (Settings.GridSquareSize * result.Result.Y);
                     }
 
                     UpdatePhantom(currentPieceIndex);
@@ -1505,25 +1879,28 @@ namespace MultiplayerTetris
                     KickResult result = CheckKick(-1, currentPieceIndex);
                     if (result.Succeeded)
                     {
-                        positions[currentPieceIndex][0] += (int)(settings.GridSquareSize * result.Result.X);
-                        positions[currentPieceIndex][1] += (int)(settings.GridSquareSize * result.Result.Y);
+                        positions[currentPieceIndex][0] += (int)(Settings.GridSquareSize * result.Result.X);
+                        positions[currentPieceIndex][1] += (int)(Settings.GridSquareSize * result.Result.Y);
                     }
                     
                     UpdatePhantom(currentPieceIndex);
                 }
 
-                if (moveRightPressed)
+                if (moveRightPressed || moveRightExtraCheck)
                 {
-                    //seFastScroll.Play();
-                    soundPosition = GetAudioPosition(currentPieceIndex);
-                    audioEmitter.Update(soundPosition);
-                    audioManager.Play3DSound(seFastScroll,false,audioEmitter);
-                    
+                    if (!moveRightExtraCheck)
+                    {
+                        //seFastScroll.Play();
+                        soundPosition = GetAudioPosition(currentPieceIndex);
+                        audioEmitter.Update(soundPosition);
+                        audioManager.Play3DSound(seFastScroll, false, audioEmitter);
+                    }
+
                     // split current tetromino into squares
                     List<Vector2> squares = new List<Vector2>();
                     foreach (Rectangle r in currentPieces[currentPieceIndex]._r)
                     {
-                        squares.AddRange(Rectangle.RectToSquares(r, settings.GridSquareSize));
+                        squares.AddRange(Rectangle.RectToSquares(r, Settings.GridSquareSize));
                     }
                     
                     // find the squares with the largest x value for each row
@@ -1548,17 +1925,20 @@ namespace MultiplayerTetris
                     }
                     
                     int canMove = 1;
+
+                    bool outOfBounds = false;
                     
                     // loop through the right side of the tetromino
                     for (int j = 0; j < rightMostSquares.Count; j++)
                     {
                         // calculate relative grid positions
-                        int xCheck = (int)(rightMostSquares[j].X + positions[currentPieceIndex][0]) / settings.GridSquareSize;
-                        int yCheck = (int)((rightMostSquares[j].Y + positions[currentPieceIndex][1]) / settings.GridSquareSize) * GridWidth;
+                        int xCheck = (int)(rightMostSquares[j].X + positions[currentPieceIndex][0]) / Settings.GridSquareSize;
+                        int yCheck = (int)((rightMostSquares[j].Y + positions[currentPieceIndex][1]) / Settings.GridSquareSize) * GridWidth;
                         
                         // if out of bounds
-                        if (xCheck >= GridWidth || yCheck >= settings.GridHeight*GridWidth || xCheck < 0 || yCheck < 0)
+                        if (xCheck >= GridWidth || yCheck >= Settings.GridHeight*GridWidth || xCheck < 0 || yCheck < 0)
                         {
+                            outOfBounds = true;
                             canMove *= 0;
                             break;
                         }
@@ -1573,11 +1953,18 @@ namespace MultiplayerTetris
                     }
 
                     // inc. x position
-                    positions[currentPieceIndex][0] += settings.GridSquareSize * canMove;
+                    positions[currentPieceIndex][0] += Settings.GridSquareSize * canMove;
 
+                    collidingRight = false;
                     if (canMove == 0)
                     {
-                        shakeX += 3f;
+                        if (!moveRightExtraCheck)
+                            shakeX += 3f;
+                        
+                        if (!outOfBounds)
+                        {
+                            collidingRight = true;
+                        }
                     }
                     
                     
@@ -1587,18 +1974,22 @@ namespace MultiplayerTetris
 
                 }
 
-                if (moveLeftPressed)
+                if (moveLeftPressed || moveLeftExtraCheck)
                 {
-                    //seFastScroll.Play();
-                    soundPosition = GetAudioPosition(currentPieceIndex);
-                    audioEmitter.Update(soundPosition);
-                    audioManager.Play3DSound(seFastScroll,false,audioEmitter);
-                    
+
+                    if (!moveLeftExtraCheck)
+                    {
+                        //seFastScroll.Play();
+                        soundPosition = GetAudioPosition(currentPieceIndex);
+                        audioEmitter.Update(soundPosition);
+                        audioManager.Play3DSound(seFastScroll,false,audioEmitter);
+                    }
+
                     // split current tetromino into squares
                     List<Vector2> squares = new List<Vector2>();
                     foreach (Rectangle r in currentPieces[currentPieceIndex]._r)
                     {
-                        squares.AddRange(Rectangle.RectToSquares(r, settings.GridSquareSize));
+                        squares.AddRange(Rectangle.RectToSquares(r, Settings.GridSquareSize));
                     }
                     
                     // find the squares with the smallest x value for each row
@@ -1623,17 +2014,20 @@ namespace MultiplayerTetris
                     }
 
                     int canMove = 1;
+
+                    bool outOfBounds = false;
                     
                     // loop through the left side of the tetromino
                     for (int j = 0; j < leftMostSquares.Count; j++)
                     {
                         // calculate relative grid positions
-                        int xCheck = (int)(leftMostSquares[j].X + positions[currentPieceIndex][0]) / settings.GridSquareSize - 2;
-                        int yCheck = (int)((leftMostSquares[j].Y + positions[currentPieceIndex][1]) / settings.GridSquareSize) * GridWidth;
+                        int xCheck = (int)(leftMostSquares[j].X + positions[currentPieceIndex][0]) / Settings.GridSquareSize - 2;
+                        int yCheck = (int)((leftMostSquares[j].Y + positions[currentPieceIndex][1]) / Settings.GridSquareSize) * GridWidth;
 
                         // if out of bounds
-                        if (xCheck >= GridWidth || yCheck >= settings.GridHeight*GridWidth || xCheck < 0 || yCheck < 0)
+                        if (xCheck >= GridWidth || yCheck >= Settings.GridHeight*GridWidth || xCheck < 0 || yCheck < 0)
                         {
+                            outOfBounds = true;
                             canMove *= 0;
                             break;
                         }
@@ -1649,11 +2043,17 @@ namespace MultiplayerTetris
                     }
                     
                     // dec. x position
-                    positions[currentPieceIndex][0] -= settings.GridSquareSize * canMove;
+                    positions[currentPieceIndex][0] -= Settings.GridSquareSize * canMove;
                     
+                    collidingLeft=false;
                     if (canMove == 0)
                     {
-                        shakeX -= 3f;
+                        if (!moveLeftExtraCheck)
+                            shakeX -= 3f;
+                        if (!outOfBounds)
+                        {
+                            collidingLeft = true;
+                        }
                     }
 
                     
@@ -1664,14 +2064,25 @@ namespace MultiplayerTetris
                     
                 }
 
+
+
+                lastRight = moveRightHeld;
+                lastLeft = moveLeftHeld;
+                if (!lastRight || !lastLeft)
+                {
+                    rightLock = false;
+                    leftLock = false;
+                }
+                
+                
                 #endregion
                 
 
                 #region Extra Inputs
 
-                bool holdPressed = inputHandler.KeyPressed(playerControllerManager.GetControl(settings.ControlsUsedPreset, currentPieceIndex, Controls.Hold));
-                bool softDropPressed = inputHandler.KeyHeld(playerControllerManager.GetControl(settings.ControlsUsedPreset, currentPieceIndex, Controls.SoftDrop));
-                bool hardDropPressed = inputHandler.KeyPressed(playerControllerManager.GetControl(settings.ControlsUsedPreset, currentPieceIndex, Controls.HardDrop));
+                bool holdPressed = inputHandler.KeyPressed(playerControllerManager.GetControl(Settings.ControlsUsedPreset, currentPieceIndex, Controls.Hold));
+                bool softDropPressed = inputHandler.KeyHeld(playerControllerManager.GetControl(Settings.ControlsUsedPreset, currentPieceIndex, Controls.SoftDrop));
+                bool hardDropPressed = inputHandler.KeyPressed(playerControllerManager.GetControl(Settings.ControlsUsedPreset, currentPieceIndex, Controls.HardDrop));
 
                 if (holdPressed && !swapped[currentPieceIndex])
                 {
@@ -1685,8 +2096,13 @@ namespace MultiplayerTetris
                     bufferedPieces[currentPieceIndex] = temp;
 
                     // go back to spawn pos
-                    positions[currentPieceIndex][0] = XSpawnPosition + GridOffsetX + XSpawnOffset*currentPieceIndex;
-                    positions[currentPieceIndex][1] = YSpawnPosition + GridOffsetY;
+                    positions[currentPieceIndex][0] = xSpawnPosition + gridOffsetX + xSpawnOffset*currentPieceIndex;
+                    positions[currentPieceIndex][1] = ySpawnPosition + gridOffsetY;
+                    
+                    if (currentPieces[currentPieceIndex].BlockType == Tetromino.Type.O)
+                    {
+                        positions[currentPieceIndex][1] -= 1;
+                    }
 
                     // if this was the first swap
                     if (firstBuffers[currentPieceIndex])
@@ -1708,7 +2124,7 @@ namespace MultiplayerTetris
                 
                 if (softDropPressed)
                 {
-                    gravityMultipliers[currentPieceIndex] = settings.SoftDropAmount;
+                    gravityMultipliers[currentPieceIndex] = Settings.SoftDropAmount;
                 }
                 else
                 {
@@ -1721,17 +2137,17 @@ namespace MultiplayerTetris
                     // play placement sound effect
                     sePlaceBlock.Play();
 
-                    int[] minimumMoves = new int[settings.NumPlayers];
-                    List<Vector2>[] eachLowestSquares = new List<Vector2>[settings.NumPlayers];
-                    List<Vector2>[] eachSquares = new List<Vector2>[settings.NumPlayers];
+                    int[] minimumMoves = new int[Settings.NumPlayers];
+                    List<Vector2>[] eachLowestSquares = new List<Vector2>[Settings.NumPlayers];
+                    List<Vector2>[] eachSquares = new List<Vector2>[Settings.NumPlayers];
 
-                    for (int i = 0; i < settings.NumPlayers; i++)
+                    for (int i = 0; i < Settings.NumPlayers; i++)
                     {
                         // split tetromino into squares
                         eachSquares[i] = new List<Vector2>();
                         foreach (Rectangle r in currentPieces[i]._r)
                         {
-                            eachSquares[i].AddRange(Rectangle.RectToSquares(r, settings.GridSquareSize));
+                            eachSquares[i].AddRange(Rectangle.RectToSquares(r, Settings.GridSquareSize));
                         }
 
                         eachLowestSquares[i] = LowestSquares(eachSquares[i]);
@@ -1748,7 +2164,7 @@ namespace MultiplayerTetris
                     List<int> forceHardDrop = new List<int>();
                     
                     
-                    for (int i = 0; i < settings.NumPlayers; i++)
+                    for (int i = 0; i < Settings.NumPlayers; i++)
                     {
                         if (minimumMoves[i] == 0)
                         {
@@ -1785,16 +2201,16 @@ namespace MultiplayerTetris
                     {
 
                         // move piece
-                        positions[index][1] += settings.GridSquareSize * minimumMoves[index];
+                        positions[index][1] += Settings.GridSquareSize * minimumMoves[index];
 
                         bool lost = false;
 
                         // set pixels on grid
                         foreach (Vector2 square in eachSquares[index])
                         {
-                            gameGrid[((int)((square.X + positions[index][0]) / settings.GridSquareSize) - 1) + ((((int)((square.Y + positions[index][1]) / settings.GridSquareSize))) * GridWidth)] = CurrentColorPalette[currentPieces[index].BlockType];
+                            gameGrid[((int)((square.X + positions[index][0]) / Settings.GridSquareSize) - 1) + ((((int)((square.Y + positions[index][1]) / Settings.GridSquareSize))) * GridWidth)] = CurrentColorPalette[currentPieces[index].BlockType];
 
-                            if ((int) ((square.Y + positions[index][1]) / settings.GridSquareSize) < 3)
+                            if ((int) ((square.Y + positions[index][1]) / Settings.GridSquareSize) < 3)
                             {
                                 lost = true;
                             }
@@ -1802,8 +2218,8 @@ namespace MultiplayerTetris
 
                         if (lost)
                         {
-                            gameGrid = new Color[GridWidth * settings.GridHeight];
-                            for (int p = 0; p < settings.NumPlayers; p++)
+                            gameGrid = new Color[GridWidth * Settings.GridHeight];
+                            for (int p = 0; p < Settings.NumPlayers; p++)
                             {
                                 UpdatePhantom(p);
                             }
@@ -1818,11 +2234,16 @@ namespace MultiplayerTetris
                         }
 
                         // go to spawn pos
-                        positions[index][0] = XSpawnPosition + GridOffsetX + XSpawnOffset*index;
-                        positions[index][1] = YSpawnPosition + GridOffsetY;
+                        positions[index][0] = xSpawnPosition + gridOffsetX + xSpawnOffset*index;
+                        positions[index][1] = ySpawnPosition + gridOffsetY;
 
                         // change piece type
                         currentPieces[index] = NextRandom(currentPieceIndex);
+                        
+                        if (currentPieces[index].BlockType == Tetromino.Type.O)
+                        {
+                            positions[index][1] -= 1;
+                        }
 
                         currentPieces[index].Update();
 
@@ -1843,7 +2264,7 @@ namespace MultiplayerTetris
                     
                     
                     
-                    for (int player = 0; player<settings.NumPlayers; player++)
+                    for (int player = 0; player<Settings.NumPlayers; player++)
                     {
 
                         if (player == currentPieceIndex)
@@ -1862,8 +2283,8 @@ namespace MultiplayerTetris
                             
                             while (true)
                             {
-                                int xCheck = (int) (square.X+positions[player][0]) / settings.GridSquareSize;
-                                int yCheck = (int) (square.Y+positions[player][1]) / settings.GridSquareSize;
+                                int xCheck = (int) (square.X+positions[player][0]) / Settings.GridSquareSize;
+                                int yCheck = (int) (square.Y+positions[player][1]) / Settings.GridSquareSize;
                                 yCheck -= push;
                                 xCheck -= 1;
 
@@ -1877,7 +2298,7 @@ namespace MultiplayerTetris
                                     // push up until no longer stuck
                                     push++;
 
-                                    if (!settings.PushUp)
+                                    if (!Settings.PushUp)
                                     {
                                         break;
                                     }
@@ -1893,18 +2314,18 @@ namespace MultiplayerTetris
                             if (push != 0)
                             {
 
-                                if (settings.PushUp)
+                                if (Settings.PushUp)
                                 {
                                     // if piece needs to be pushed up
 
                                     // push piece up
-                                    positions[player][1] -= (push + 2) * settings.GridSquareSize;
+                                    positions[player][1] -= (push + 2) * Settings.GridSquareSize;
                                 }
                                 else
                                 {
-                                    positions[player][0] = XSpawnPosition + GridOffsetX +
-                                                           XSpawnOffset * player;
-                                    positions[player][1] = YSpawnPosition + GridOffsetY;
+                                    positions[player][0] = xSpawnPosition + gridOffsetX +
+                                                           xSpawnOffset * player;
+                                    positions[player][1] = ySpawnPosition + gridOffsetY;
                                 }
 
                             }
@@ -1918,8 +2339,6 @@ namespace MultiplayerTetris
                         
                     }
                     
-                    
-                    
 
                     // check if finished row
                     Destroy();
@@ -1927,44 +2346,82 @@ namespace MultiplayerTetris
                     shakeY += 6f;
                     
                     // update all phantoms
-                    for (int it = 0; it < settings.NumPlayers; it++) { UpdatePhantom(it); }
+                    for (int it = 0; it < Settings.NumPlayers; it++) { UpdatePhantom(it); }
 
                 }
                 #endregion
                 
                 
                 // + buffer in next position after applying gravity
-                realPositionsY[currentPieceIndex] += Gravity * ((positions[currentPieceIndex][1] > 1)? gravityMultipliers[currentPieceIndex]:1f);
+                realPositionsY[currentPieceIndex] += Gravity * ((positions[currentPieceIndex][1] > 1)? gravityMultipliers[currentPieceIndex]:1f) * deltaTime;
 
 
-            }
-
-            if (shakeY > 0)
-            {
-                shakeY -= (float) Math.Round(shakeY / shakeDamping, 2);
             }
             
-            if (Math.Abs(shakeX) > 0)
+            
+            if (shakeWait > 1)
             {
-                shakeX -= (float) Math.Round(shakeX / shakeDamping, 2);
+                if (shakeY > 0)
+                {
+                    shakeY -= (float) Math.Round(shakeY / shakeDamping, 2);
+                }
+            
+                if (Math.Abs(shakeX) > 0)
+                {
+                    shakeX -= (float) Math.Round(shakeX / shakeDamping, 2);
+                }
+
+
+                if ((pointsCurrentAlpha-= AlphaDecreaseRate) > 0)
+                {
+                    pointsColor.R = (byte)pointsCurrentAlpha;
+                    pointsColor.G = (byte)pointsCurrentAlpha;
+                    pointsColor.B = (byte)pointsCurrentAlpha;
+                    pointsColor.A = (byte)pointsCurrentAlpha;
+                }
+                else
+                {
+                    displayingPointsEffect = false;
+                    pointsCurrentAlpha = 0f;
+                    pointsColor = Color.Transparent;
+                }
+
+                
+                if ((comboCurrentAlpha -= BonusAlphaDecreaseRate) > 0)
+                {
+                    comboColor.R = (byte)comboCurrentAlpha;
+                    comboColor.G = (byte)comboCurrentAlpha;
+                    comboColor.B = (byte)comboCurrentAlpha;
+                    comboColor.A = (byte)comboCurrentAlpha;
+                }
+                else
+                {
+                    displayingComboEffect = false;
+                    comboCurrentAlpha = 0f;
+                    comboColor = Color.Transparent;
+                }
+
+                
+                if ((b2bCurrentAlpha -= BonusAlphaDecreaseRate) > 0)
+                {
+                    b2bColor.R = (byte)b2bCurrentAlpha;
+                    b2bColor.G = (byte)b2bCurrentAlpha;
+                    b2bColor.B = (byte)b2bCurrentAlpha;
+                    b2bColor.A = (byte)b2bCurrentAlpha;
+                }
+                else
+                {
+                    displayingB2BEffect = false;
+                    b2bCurrentAlpha = 0f;
+                    b2bColor = Color.Transparent;
+                }
+
+                shakeWait = 0;
+
             }
 
 
-            if ((pointsCurrentAlpha-= AlphaDecreaseRate) > 0)
-            {
-                //pointsCurrentAlpha -= AlphaDecreaseRate;
-
-                pointsColor.R = (byte)pointsCurrentAlpha;
-                pointsColor.G = (byte)pointsCurrentAlpha;
-                pointsColor.B = (byte)pointsCurrentAlpha;
-                pointsColor.A = (byte)pointsCurrentAlpha;
-            }
-            else
-            {
-                displayingPointsEffect = false;
-            }
-
-
+            shakeWait += deltaTime;
             base.Update(gameTime);
         }
 
@@ -1973,209 +2430,79 @@ namespace MultiplayerTetris
             
             # region Pre-Draw
             
-            float deltaTime = (float) gameTime.ElapsedGameTime.TotalSeconds;
-            frameCounter.Update(deltaTime);
             
-            GraphicsDevice.Clear(Color.Black);
+            //GraphicsDevice.Clear(Color.Black);
 
             #endregion
 
             #region Sprite Batch
 
-            spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointWrap, null, null, null, null);
+            spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointWrap);
 
-
-            float imageAspectRatioWidth = (float)background.Height/background.Width;
-            float imageAspectRatioHeight = (float)background.Width/background.Height;
+            spriteBatch.Draw(backgroundRenderTarget,Vector2.Zero, Color.White);
             
-            int newWidth = settings.ScreenWidth;
-            int newHeight = (int) (newWidth * imageAspectRatioWidth);
-            
-            if (newHeight < settings.ScreenHeight)
-            {
-                newHeight = settings.ScreenHeight;
-                newWidth = (int) (newHeight * imageAspectRatioHeight);
-            }
-            
-            int dimming = 100;
-            spriteBatch.Draw(background,
-                new Microsoft.Xna.Framework.Rectangle((int)(((float)settings.ScreenWidth - newWidth)/2), (int)(((float)settings.ScreenHeight - newHeight)/2),
-                    newWidth,newHeight),
-                new Color(dimming,dimming,dimming,dimming));
-            
-            spriteBatch.Draw(blackPixel,
-                new Microsoft.Xna.Framework.Rectangle(settings.GridSquareSize + DisplayOffsetX + (int)shakeX, settings.GridSquareSize + DisplayOffsetY + (int)shakeY,
-                    settings.GridSquareSize*gameTexture.Width, settings.GridSquareSize*gameTexture.Height),
+            spriteBatch.Draw(bufferPieceRenderTarget,
+                new Vector2((bufferedPieceX + displayOffsetX) - 1,(bufferedPieceY + displayOffsetY) - 1),
                 Color.White);
             
+            
+            spriteBatch.Draw(nextPiecesRenderTarget,
+                new Vector2((nextPiecesX + displayOffsetX) - 1,(nextPiecesY + displayOffsetY) - 1),
+                Color.White);
 
-            if (settings.DisplayGrid)
-            {
-                if (settings.GridUnderneath)
-                {
-                    // draw the grid
-                    displayGrid.Draw(spriteBatch, graphics);
-                }
 
-            }
-            else
-            {
-                spriteBatch.Draw(GameBorderTexture,
-                    new Vector2(GridOffsetX + DisplayOffsetX + (int)shakeX, (int)shakeY+ GridOffsetY + DisplayOffsetY + 4*settings.GridSquareSize),
-                    Color.White);
-            }
-
+            int shakeXpos = (int) shakeX + (Settings.GridSquareSize + displayOffsetX);
+            spriteBatch.Draw(shakeRenderTarget,
+                new Vector2(shakeXpos,(int)shakeY+(Settings.GridSquareSize * 5 + displayOffsetY)),
+            Color.White);
             
             
-            if (settings.OutlinedPhantomDisplay)
+            
+            if (Settings.OutlinedPhantomDisplay)
             {
                 // draw phantom pieces
-                for (int i = 0; i < settings.NumPlayers; i++)
+                for (int i = 0; i < Settings.NumPlayers; i++)
                 {
                 
                     spriteBatch.Draw(phantomDropTextures[i],
-                        new Vector2((phantomPositions[i].X + DisplayOffsetX + (int)shakeX), (phantomPositions[i].Y + DisplayOffsetY + (int)shakeY)),
+                        new Vector2((phantomPositions[i].X + displayOffsetX + (int)shakeX), (phantomPositions[i].Y + displayOffsetY + (int)shakeY)),
                         Color.White);
                 
                 }
             }
-            
-            
-            // gray rectangle above grid
-            spriteBatch.Draw(darkGrayPixel,
-                new Microsoft.Xna.Framework.Rectangle(settings.GridSquareSize + DisplayOffsetX + (int)shakeX, settings.GridSquareSize + DisplayOffsetY + (int)shakeY,
-                    settings.GridSquareSize*gameTexture2.Width, settings.GridSquareSize*4),
-                Color.DarkGray);
-            
-            
-            
-            // border for buffer/next pieces 
-            
-            #region 4 lines for next pieces
-            spriteBatch.Draw(whitePixel,
-                new Microsoft.Xna.Framework.Rectangle((NextPiecesX + DisplayOffsetX)-1,
-                    (NextPiecesY + DisplayOffsetY)-1,
-                    1,
-                    nextPiecesTextures[0].Height * settings.GridSquareSize/2 +settings.GridSquareSize +2),
-                Color.White);
-            
-            spriteBatch.Draw(whitePixel,
-                new Microsoft.Xna.Framework.Rectangle((NextPiecesX + DisplayOffsetX) + nextPiecesTextures[0].Width * settings.GridSquareSize/2 +2,
-                    (NextPiecesY + DisplayOffsetY)-1,
-                    1,
-                    nextPiecesTextures[0].Height * settings.GridSquareSize/2 +settings.GridSquareSize +2),
-                Color.White);
-            
-            spriteBatch.Draw(whitePixel,
-                new Microsoft.Xna.Framework.Rectangle((NextPiecesX + DisplayOffsetX)-1,
-                    (NextPiecesY + DisplayOffsetY)-1,
-                    nextPiecesTextures[0].Width * settings.GridSquareSize/2 +2,
-                    1),
-                Color.White);
-            
-            spriteBatch.Draw(whitePixel,
-                new Microsoft.Xna.Framework.Rectangle((NextPiecesX + DisplayOffsetX) -1,
-                    (NextPiecesY + DisplayOffsetY) + nextPiecesTextures[0].Height * settings.GridSquareSize/2 +settings.GridSquareSize +2,
-                    nextPiecesTextures[0].Width * settings.GridSquareSize/2 +2,
-                    1),
-                Color.White);
-            #endregion
-            
-            #region 4 lines for buffer pieces
-            
-            /*
-            spriteBatch.Draw(whitePixel,
-                new Microsoft.Xna.Framework.Rectangle((BufferedPieceX + DisplayOffsetX)-1,
-                    (BufferedPieceY + DisplayOffsetY)-1,
-                    (bufferedPieceTextures[0].Width +1)* settings.GridSquareSize  +2,
-                    (bufferedPieceTextures[0].Height +1)* settings.GridSquareSize  +2),
-                Color.White);
-                
-                */
-            
-            
-            
-            spriteBatch.Draw(whitePixel,
-                new Microsoft.Xna.Framework.Rectangle((BufferedPieceX + DisplayOffsetX)-1,
-                    (BufferedPieceY + DisplayOffsetY)-1,
-                    1,
-                    (bufferedPieceTextures[0].Height +1)* settings.GridSquareSize  +2),
-                Color.White);
-            
-            spriteBatch.Draw(whitePixel,
-                new Microsoft.Xna.Framework.Rectangle((BufferedPieceX + DisplayOffsetX) + (bufferedPieceTextures[0].Width +1)* settings.GridSquareSize  +2,
-                    (BufferedPieceY + DisplayOffsetY)-1,
-                    1,
-                    (bufferedPieceTextures[0].Height +1)* settings.GridSquareSize  +2),
-                Color.White);
-            
-            spriteBatch.Draw(whitePixel,
-                new Microsoft.Xna.Framework.Rectangle((BufferedPieceX + DisplayOffsetX)-1,
-                    (BufferedPieceY + DisplayOffsetY)-1,
-                    (bufferedPieceTextures[0].Width +1)* settings.GridSquareSize  +2,
-                    1),
-                Color.White);
-            
-            spriteBatch.Draw(whitePixel,
-                new Microsoft.Xna.Framework.Rectangle((BufferedPieceX + DisplayOffsetX)-1,
-                    (BufferedPieceY + DisplayOffsetY) + (bufferedPieceTextures[0].Height +1)* settings.GridSquareSize  +2,
-                    (bufferedPieceTextures[0].Width +1)* settings.GridSquareSize  +2,
-                    1),
-                Color.White);
-                
-            
-            #endregion
-            
 
-            
-            // background for buffer/next pieces
-            spriteBatch.Draw(backgroundTexture, 
-                new Microsoft.Xna.Framework.Rectangle(0,0, backgroundTexture.Width*settings.GridSquareSize,
-                    backgroundTexture.Height * settings.GridSquareSize),
-                Color.White);
 
 
             bool oddX = !(bufferedPieces[0] == Tetromino.Type.I || bufferedPieces[0] == Tetromino.Type.O);
             bool oddY = (bufferedPieces[0] == Tetromino.Type.I);
+            
+            
+            
+            Microsoft.Xna.Framework.Rectangle rect = 
+                new Microsoft.Xna.Framework.Rectangle(bufferedPieceRect.X,bufferedPieceRect.Y,bufferedPieceRect.Width,bufferedPieceRect.Height);
 
+            rect.X += ((oddX) ? Settings.GridSquareSize : Settings.GridSquareSize / 2);
+            rect.Y += ((oddY) ? 0 : Settings.GridSquareSize / 2);
+            
             spriteBatch.Draw(bufferedPieceTextures[0],
-                new Microsoft.Xna.Framework.Rectangle((BufferedPieceX + DisplayOffsetX + ((oddX)?settings.GridSquareSize:settings.GridSquareSize/2)),
-                    (BufferedPieceY + DisplayOffsetY + ((oddY)?0:settings.GridSquareSize/2)),
-                    bufferedPieceTextures[0].Width * settings.GridSquareSize,
-                    bufferedPieceTextures[0].Height * settings.GridSquareSize),
+                rect,
                 Color.White);
 
 
             // draw next pieces queue (only 0th player's currently)
-            spriteBatch.Draw(nextPiecesTextures[0],
-                new Microsoft.Xna.Framework.Rectangle((NextPiecesX + DisplayOffsetX),
-                    (NextPiecesY + DisplayOffsetY),
-                    nextPiecesTextures[0].Width * settings.GridSquareSize/2,
-                    nextPiecesTextures[0].Height * settings.GridSquareSize/2),
-                Color.White);
-
-            
-            /*
-            spriteBatch.Draw(nextPiecesTextures[1],
-                new Vector2(((float)NextPiecesX + DisplayOffsetX + NextPiecesWidth + GridSquareSize*3) / GridSquareSize,
-                    ((float)NextPiecesY + DisplayOffsetY) / GridSquareSize),
-                Color.White);
-            */
-
+            spriteBatch.Draw(nextPiecesTextures[0], nextPiecesRect, Color.White);
             
             
-            
-            
-            if (!settings.OutlinedPhantomDisplay)
+            if (!Settings.OutlinedPhantomDisplay)
             {
                 // draw phantom pieces
-                for (int i = 0; i < settings.NumPlayers; i++)
+                for (int i = 0; i < Settings.NumPlayers; i++)
                 {
 
                     Microsoft.Xna.Framework.Rectangle currentRect = 
-                        new Microsoft.Xna.Framework.Rectangle((int) (phantomPositions[i].X + DisplayOffsetX + shakeX)+1,
-                            (int) (phantomPositions[i].Y + DisplayOffsetY + (int) shakeY)+1,
-                            settings.GridSquareSize * phantomDropTextures[i].Width -1, settings.GridSquareSize * phantomDropTextures[i].Height -1);
+                        new Microsoft.Xna.Framework.Rectangle((int) (phantomPositions[i].X + displayOffsetX + shakeX)+1,
+                            (int) (phantomPositions[i].Y + displayOffsetY + (int) shakeY)+1,
+                            Settings.GridSquareSize * phantomDropTextures[i].Width -1, Settings.GridSquareSize * phantomDropTextures[i].Height -1);
                     
                     spriteBatch.Draw(phantomDropTextures[i], currentRect, Color.White);
                 
@@ -2185,8 +2512,8 @@ namespace MultiplayerTetris
 
             // render all pieces to gameTexture2
             
-            Color[] pieceDisplayGrid = new Color[GridWidth * settings.GridHeight];
-            for (int i = 0; i < settings.NumPlayers; i++)
+            Color[] pieceDisplayGrid = new Color[GridWidth * Settings.GridHeight];
+            for (int i = 0; i < Settings.NumPlayers; i++)
             {
                 currentPieces[i].Draw(positions[i][0], positions[i][1], pieceDisplayGrid);
                 gameTexture2.SetData(pieceDisplayGrid);
@@ -2194,57 +2521,54 @@ namespace MultiplayerTetris
             
             gameTexture.SetData(gameGrid);
 
+            
+            
+            rect = 
+                new Microsoft.Xna.Framework.Rectangle(placedPiecesRect.X,placedPiecesRect.Y,placedPiecesRect.Width,placedPiecesRect.Height);
+            
+            
+            rect.X += (int) shakeX;
+            rect.Y += (int) shakeY;
 
             // placed pieces
             spriteBatch.Draw(gameTexture,
-                new Microsoft.Xna.Framework.Rectangle(settings.GridSquareSize + DisplayOffsetX + (int)shakeX, settings.GridSquareSize + DisplayOffsetY + (int)shakeY,
-                    settings.GridSquareSize*gameTexture.Width, settings.GridSquareSize*gameTexture.Height),
+                rect,
                 Color.White);
+
             
+
+            rect = 
+                new Microsoft.Xna.Framework.Rectangle(playerPiecesRect.X,playerPiecesRect.Y,playerPiecesRect.Width,playerPiecesRect.Height);
+            
+            rect.X += (int) shakeX;
+            rect.Y += (int) shakeY;
             // player pieces
             spriteBatch.Draw(gameTexture2,
-                new Microsoft.Xna.Framework.Rectangle(settings.GridSquareSize + DisplayOffsetX + (int)shakeX, settings.GridSquareSize + DisplayOffsetY + (int)shakeY,
-                    settings.GridSquareSize*gameTexture2.Width, settings.GridSquareSize*gameTexture2.Height),
+                rect,
                 Color.White);
 
 
 
-            if (settings.DisplayGrid)
-            {
-                if (!settings.GridUnderneath)
-                {
-                    // draw the grid
-                    displayGrid.Draw(spriteBatch, graphics);
-                }
-
-            }
-            else
-            {
-                spriteBatch.Draw(GameBorderTexture,
-                    new Vector2(GridOffsetX+ DisplayOffsetX + (int)shakeX, (int) shakeY + GridOffsetY + DisplayOffsetY + 4 * settings.GridSquareSize),
-                    Color.White);
-            }
-
-            if (settings.SquareIndicators)
+            if (Settings.SquareIndicators)
             {
 
                 for (int i = 0; i < GridWidth; i++)
                 {
-                    for (int j = 0; j < settings.GridHeight; j++)
+                    for (int j = 0; j < Settings.GridHeight; j++)
                     {
                         if (gameGrid[i + j * GridWidth] != Color.Transparent)
                         {
                             spriteBatch.Draw(squareIndicatorTexture,
-                                new Vector2(DisplayOffsetX + (1 + i) * settings.GridSquareSize + (int)shakeX, (int)shakeY + DisplayOffsetY + (1 + j) * settings.GridSquareSize),
+                                new Vector2(displayOffsetX + (1 + i) * Settings.GridSquareSize + (int)shakeX, (int)shakeY + displayOffsetY + (1 + j) * Settings.GridSquareSize),
                                 Color.White);
                         }
 
-                        if (settings.SquareIndicatorsOnFalling)
+                        if (Settings.SquareIndicatorsOnFalling)
                         {
                             if (pieceDisplayGrid[i + j * GridWidth] != Color.Transparent)
                             {
                                 spriteBatch.Draw(squareIndicatorTexture,
-                                    new Vector2(DisplayOffsetX + (1 + i) * settings.GridSquareSize + (int)shakeX, (int)shakeY + DisplayOffsetY + (1 + j) * settings.GridSquareSize),
+                                    new Vector2(displayOffsetX + (1 + i) * Settings.GridSquareSize + (int)shakeX, (int)shakeY + displayOffsetY + (1 + j) * Settings.GridSquareSize),
                                     Color.White);
                             }
                         }
@@ -2255,68 +2579,97 @@ namespace MultiplayerTetris
             }
             
             
-            /*
             // draw the fps
             spriteBatch.DrawString(spriteFont, (Math.Ceiling(frameCounter.CurrentFramesPerSecond)).ToString(CultureInfo.InvariantCulture),
                 Vector2.Zero,
                 Color.Gray);
-            */
             
-            //spriteBatch.DrawString(spriteFont, points+"",
-            //    new Vector2(0,settings.ScreenHeight-60),
-            //    Color.Gray);
-            
+
             spriteBatch.DrawString(spriteFont, points+"",
-                new Vector2(0,settings.ScreenHeight-45),
+                pointsDisplayPos,
                 Color.Gray, 0f, Vector2.Zero,
                 new Vector2(1.5f, 1.5f), SpriteEffects.None, 0f);
-            
-            //spriteBatch.DrawString(spriteFont, "rows: "+TotalRowsCleared,
-            //    new Vector2(0,ScreenHeight-60),
-            //    Color.Gray);
-            
-            
-            // draw name
-            //spriteBatch.DrawString(spriteFont, ("Luna"),
-            //    new Vector2(positions[0][0] + GridSquareSize*7,positions[0][1]),
-            //    Color.Gray);
 
 
-            if (settings.DisplayingNames)
+
+
+            if (Settings.DisplayingNames)
             {
-
-                for (int p = 0; p < settings.NumPlayers; p++)
+                for (int p = 0; p < Settings.NumPlayers; p++)
                 {
-                    String nameText = playerControllerManager.GetName(settings.ControlsUsedPreset,p);
+                    
+                    int nameLength = playerControllerManager.GetName(Settings.ControlsUsedPreset,p).Length *27;
 
-                    int textOffsetX = (settings.GridSquareSize * 4 - (nameText.Length*27))/2;
+                    bool odd = currentPieces[p].BlockType != Tetromino.Type.O &&
+                               currentPieces[p].BlockType != Tetromino.Type.I;
+
+
+                    int xpos = displayOffsetX + positions[p][0] + (int)shakeX + nameOffsets[p] - ((odd)?Settings.GridSquareSize/2:0);
+                    int ypos = (int)(shakeY + positions[p][1] +displayOffsetY - 10);
+
+                    if (xpos < shakeXpos)
+                        xpos = shakeXpos;
+
+
+                    if (xpos + nameLength > shakeXpos + Settings.GridSquareSize * gameTexture.Width)
+                        xpos = shakeXpos + Settings.GridSquareSize * gameTexture.Width - nameLength;
                     
-                    
-                    spriteBatch.DrawString(spriteFont, nameText,
-                        new Vector2(DisplayOffsetX + positions[p][0] +textOffsetX + (int)shakeX,shakeY + positions[p][1] +DisplayOffsetY - 10)
-                        , Color.Gray, 0f, Vector2.Zero
-                        , new Vector2(1, 1), SpriteEffects.None, 0f);
+                    spriteBatch.Draw(nameRenderTargets[p],
+                        new Vector2(xpos,
+                            ypos),
+                        Color.White);
                 }
+                
+
+                //displayOffsetX + positions[i][0] + (int)shakeX
+                //shakeY + positions[i][1] +displayOffsetY - 10
+
+                //for (int p = 0; p < Settings.NumPlayers; p++)
+                //{
+                //    String nameText = playerControllerManager.GetName(Settings.ControlsUsedPreset,p);
+
+                //    int textOffsetX = (Settings.GridSquareSize * 4 - (nameText.Length*27))/2;
+                //    
+                //    
+                //    spriteBatch.DrawString(spriteFont, nameText,
+                //        new Vector2(displayOffsetX + positions[p][0] +textOffsetX + (int)shakeX,shakeY + positions[p][1] +displayOffsetY - 10)
+                //        , Color.Gray, 0f, Vector2.Zero
+                //        , new Vector2(1, 1), SpriteEffects.None, 0f);
+                //}
 
             }
 
 
             if (displayingPointsEffect)
             {
-
-
                 //int textOffsetX = (settings.GridSquareSize * 4 - (pointEffectText.Length * 25 - 1)) / 2;
 
                 float scale = 2;
 
-                int xpos = (int)(settings.GridSquareSize + DisplayOffsetX + (int) shakeX +
-                    (GridWidth * settings.GridSquareSize / 2) - (pointEffectText.Length * 27) * (scale / 2));
+                int xpos = (int)(Settings.GridSquareSize + displayOffsetX + (int) shakeX +
+                    (GridWidth * Settings.GridSquareSize / 2) - (pointEffectText.Length * 27) * (scale / 2));
 
                 spriteBatch.DrawString(spriteFont, pointEffectText,
-                    new Vector2(xpos, settings.ScreenHeight / 2 - 25 * (scale / 2))
+                    new Vector2(xpos, (float)Settings.ScreenHeight / 2 - 25 * (scale / 2))
                     , pointsColor, 0f, Vector2.Zero
                     , new Vector2(scale, scale), SpriteEffects.None, 0f);
             }
+            
+            
+            if (displayingComboEffect)
+            {
+                float scale = combo;
+                if (scale > 5) { scale = 5; }
+
+                int xpos = (int)(displayOffsetX - 20 - comboEffectText.Length*(27 * scale));
+
+                spriteBatch.DrawString(spriteFont, comboEffectText,
+                    new Vector2(xpos, (float)Settings.ScreenHeight / 2 - 25 * (scale / 2))
+                    , comboColor, 0f, Vector2.Zero
+                    , new Vector2(scale, scale), SpriteEffects.None, 0f);
+            }
+            
+            
 
 
             
@@ -2337,4 +2690,5 @@ namespace MultiplayerTetris
         
 
     }
+    
 }
