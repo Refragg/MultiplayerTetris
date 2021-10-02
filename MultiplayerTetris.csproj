@@ -24,7 +24,7 @@
     <None CopyToOutputDirectory="Always" Include="Content\se\clear_row.wav" />
     <None CopyToOutputDirectory="Always" Include="Content\se\fast_scroll.wav" />
     <None CopyToOutputDirectory="Always" Include="Content\se\perfect.wav" />
-    <None CopyToOutputDirectory="Always" Include="Content\img\background.jpg" />
+    <None CopyToOutputDirectory="Always" Include="Content\img\background.png" />
   </ItemGroup>
   <ItemGroup>
     <MonoGameContentReference Include="Content\Content.mgcb" />

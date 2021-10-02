@@ -125,7 +125,9 @@ namespace MultiplayerTetris
 
         private Color[] backgroundGrid;
         private Texture2D backgroundTexture;
-
+        
+        private Texture2D whitePixel;
+        private Texture2D grayPixel;
         private Texture2D darkGrayPixel;
         private Texture2D blackPixel;
 
@@ -198,14 +200,14 @@ namespace MultiplayerTetris
 
             XSpawnOffset = (GridWidth / settings.NumPlayers) * settings.GridSquareSize;
 
-            BufferedPieceX = -5* settings.GridSquareSize;
+            BufferedPieceX = -6* settings.GridSquareSize;
             BufferedPieceY = settings.GridSquareSize;
 
             NextPiecesX = (GridWidth + 3) * settings.GridSquareSize;
             NextPiecesY = settings.GridSquareSize;
 
-            NextPiecesWidth = 4* settings.GridSquareSize;
-            NextPiecesHeight = 5* settings.NextPiecesAmount * settings.GridSquareSize;
+            NextPiecesWidth = 5* settings.GridSquareSize;
+            NextPiecesHeight = 3* settings.NextPiecesAmount * settings.GridSquareSize;
 
             currentPieces = new Tetromino[settings.NumPlayers];
 
@@ -243,9 +245,6 @@ namespace MultiplayerTetris
             
             
             #endregion
-            
-            
-
 
             #region Display Settings
             
@@ -316,8 +315,13 @@ namespace MultiplayerTetris
             gameTexture2 = new Texture2D(graphics.GraphicsDevice, GridWidth, settings.GridHeight);
             gameTexture2.SetData(gameGrid);
 
+            whitePixel = new Texture2D(graphics.GraphicsDevice, 1, 1); 
+            grayPixel = new Texture2D(graphics.GraphicsDevice, 1, 1);
             darkGrayPixel = new Texture2D(graphics.GraphicsDevice, 1, 1);
             blackPixel = new Texture2D(graphics.GraphicsDevice, 1, 1);
+            
+            whitePixel.SetData(new Color[]{Color.White});
+            grayPixel.SetData(new Color[]{Color.Gray});
             darkGrayPixel.SetData(new Color[]{new Color(60,60,60)});        
             blackPixel.SetData(new Color[]{Color.Black});
 
@@ -426,7 +430,7 @@ namespace MultiplayerTetris
                 currentPieces[i] = NextRandom(i);
                 currentPieces[i].Update();
 
-                nextPiecesTextures[i] = new Texture2D(graphics.GraphicsDevice,NextPiecesWidth/settings.GridSquareSize,NextPiecesHeight/settings.GridSquareSize);
+                nextPiecesTextures[i] = new Texture2D(graphics.GraphicsDevice,2*NextPiecesWidth/settings.GridSquareSize,2*NextPiecesHeight/settings.GridSquareSize);
                 nextPiecesGrids[i] = new Color[(nextPiecesTextures[i].Width*nextPiecesTextures[i].Height)];
 
                 UpdateNextPiecesDisplay(i);
@@ -515,41 +519,34 @@ namespace MultiplayerTetris
             for (int multI = 1; multI < 2; multI++)
             {
                             
-                xOffset = (multI*BufferedPieceX) + DisplayOffsetX - settings.GridSquareSize - settings.GridSquareSize*2*(multI-1);
-                yOffset = BufferedPieceY + DisplayOffsetY - settings.GridSquareSize;
+                xOffset = (multI*BufferedPieceX) + DisplayOffsetX - settings.GridSquareSize*2*(multI-1);
+                yOffset = BufferedPieceY + DisplayOffsetY;
 
                 xOffset /= settings.GridSquareSize;
                 yOffset /= settings.GridSquareSize;
 
-                for (int i = 0; i < 6; i++)
+                for (int i = 0; i < 5; i++)
                 {
-                    for (int j = 0; j < 5; j++)
+                    for (int j = 0; j < 3; j++)
                     {
-                        if (!((i == 0 && j == 0) || (i == 5 && j == 4) || (i == 5 && j == 0) || (i == 0 && j == 4)))
-                        {
-                            backgroundGrid[(xOffset + i) + (yOffset + j)*screenGridWidth] = (i>0 && i<5 && j>0 && j<4)?darkerGray:darkGray;
-                        }
+                        backgroundGrid[(xOffset + i) + (yOffset + j) * screenGridWidth] = Color.Black;
 
                     }
                 }
                 
                 
                 
-                xOffset = NextPiecesX + DisplayOffsetX - settings.GridSquareSize + 7*settings.GridSquareSize*(multI-1);
-                yOffset = NextPiecesY + DisplayOffsetY - settings.GridSquareSize;
+                xOffset = NextPiecesX + DisplayOffsetX + 7*settings.GridSquareSize*(multI-1);
+                yOffset = NextPiecesY + DisplayOffsetY;
             
                 xOffset /= settings.GridSquareSize;
                 yOffset /= settings.GridSquareSize;
             
-                for (int i = 0; i < 6; i++)
+                for (int i = 0; i < 5; i++)
                 {
-                    for (int j = 0; j < 5* settings.NextPiecesAmount +1; j++)
+                    for (int j = 0; j < 3* settings.NextPiecesAmount +1; j++)
                     {
-                        if (!((i == 0 && j == 0) || (i == 5 && j == 25) || (i == 5 && j == 0) || (i == 0 && j == 25)))
-                        {
-                            backgroundGrid[(xOffset + i) + (yOffset + j)*screenGridWidth] = (i>0 && i<5 && j>0 && j%5!=0)?darkerGray:darkGray;
-                        }
-
+                        backgroundGrid[(xOffset + i) + (yOffset + j)*screenGridWidth] = Color.Black;
                     }
                 }
                 
@@ -590,10 +587,9 @@ namespace MultiplayerTetris
             
             #region Image Loading
 
-            if (settings.Fullscreen)
-            {
-                background = Texture2D.FromFile(graphics.GraphicsDevice,Path.Combine("Content", "img", "background.jpg"));
-            }
+
+            background = Texture2D.FromFile(graphics.GraphicsDevice,Path.Combine("Content", "img", "background.png"));
+            
             
 
             #endregion
@@ -1101,7 +1097,7 @@ namespace MultiplayerTetris
                     int x = (int) sq.X / settings.GridSquareSize;
                     int y = ((int) sq.Y / settings.GridSquareSize) + yOffset;
 
-                    bufferedPieceGrids[currentPieceIndex][x + y * nextPiecesTextures[currentPieceIndex].Width] = (swapped[currentPieceIndex])?Color.Gray:CurrentColorPalette[bufferedPieces[currentPieceIndex]];
+                    bufferedPieceGrids[currentPieceIndex][x + y * 4] = (swapped[currentPieceIndex])?Color.Gray:CurrentColorPalette[bufferedPieces[currentPieceIndex]];
                 }
             
             
@@ -1139,13 +1135,54 @@ namespace MultiplayerTetris
 
                     foreach (Vector2 sq in squares)
                     {
-                        x = (int) sq.X / settings.GridSquareSize;
-                        int yTemp = y + ((int) sq.Y / settings.GridSquareSize);
+                        x = 2*((int) sq.X / (settings.GridSquareSize));
+                        int yTemp = y + 2*((int) sq.Y / (settings.GridSquareSize));
 
-                        nextPiecesGrids[currentPieceIndex][x + yTemp * nextPiecesTextures[currentPieceIndex].Width] = CurrentColorPalette[piece];
+                        if (piece != Tetromino.Type.O)
+                        {
+                            if (piece != Tetromino.Type.I)
+                            {
+                                x += 2;
+                                yTemp += 2;
+                            }
+                            else
+                            {
+                                x += 1;
+                                yTemp += 1;
+                            }
+                            
+                        }
+                        else
+                        {
+                            x += 1;
+                        }
+                        
+                        
+
+
+                        int xInc = 0;
+                        int yInc = 0;
+                        
+                        for (int offset = 0; offset < 4; offset++)
+                        {
+
+                            
+
+                            if (offset == 2)
+                            {
+                                xInc -= 2;
+                                yInc ++;
+                            }
+
+                            nextPiecesGrids[currentPieceIndex][x + xInc + (yTemp + yInc) * nextPiecesTextures[currentPieceIndex].Width] = CurrentColorPalette[piece];
+
+                            xInc ++;
+                        }
+                        
+
                     }
 
-                    y+=5;
+                    y+=6;
 
                 }
                 else
@@ -1933,6 +1970,7 @@ namespace MultiplayerTetris
 
         protected override void Draw(GameTime gameTime)
         {
+            
             # region Pre-Draw
             
             float deltaTime = (float) gameTime.ElapsedGameTime.TotalSeconds;
@@ -1946,14 +1984,24 @@ namespace MultiplayerTetris
 
             spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointWrap, null, null, null, null);
 
-            if (settings.Fullscreen)
-            {
-                int dimming = 100;
-                spriteBatch.Draw(background,Vector2.Zero, new Color(dimming,dimming,dimming,dimming));
-            }
 
+            float imageAspectRatioWidth = (float)background.Height/background.Width;
+            float imageAspectRatioHeight = (float)background.Width/background.Height;
             
-            //blackPixel
+            int newWidth = settings.ScreenWidth;
+            int newHeight = (int) (newWidth * imageAspectRatioWidth);
+            
+            if (newHeight < settings.ScreenHeight)
+            {
+                newHeight = settings.ScreenHeight;
+                newWidth = (int) (newHeight * imageAspectRatioHeight);
+            }
+            
+            int dimming = 100;
+            spriteBatch.Draw(background,
+                new Microsoft.Xna.Framework.Rectangle((int)(((float)settings.ScreenWidth - newWidth)/2), (int)(((float)settings.ScreenHeight - newHeight)/2),
+                    newWidth,newHeight),
+                new Color(dimming,dimming,dimming,dimming));
             
             spriteBatch.Draw(blackPixel,
                 new Microsoft.Xna.Framework.Rectangle(settings.GridSquareSize + DisplayOffsetX + (int)shakeX, settings.GridSquareSize + DisplayOffsetY + (int)shakeY,
@@ -1999,40 +2047,113 @@ namespace MultiplayerTetris
                     settings.GridSquareSize*gameTexture2.Width, settings.GridSquareSize*4),
                 Color.DarkGray);
             
-
-
-
-            // decorative borders for buffer/next pieces
-            spriteBatch.Draw(backgroundTexture, 
-                new Microsoft.Xna.Framework.Rectangle(0,0, backgroundTexture.Width*settings.GridSquareSize,
-                backgroundTexture.Height * settings.GridSquareSize),
+            
+            
+            // border for buffer/next pieces 
+            
+            #region 4 lines for next pieces
+            spriteBatch.Draw(whitePixel,
+                new Microsoft.Xna.Framework.Rectangle((NextPiecesX + DisplayOffsetX)-1,
+                    (NextPiecesY + DisplayOffsetY)-1,
+                    1,
+                    nextPiecesTextures[0].Height * settings.GridSquareSize/2 +settings.GridSquareSize +2),
                 Color.White);
             
+            spriteBatch.Draw(whitePixel,
+                new Microsoft.Xna.Framework.Rectangle((NextPiecesX + DisplayOffsetX) + nextPiecesTextures[0].Width * settings.GridSquareSize/2 +2,
+                    (NextPiecesY + DisplayOffsetY)-1,
+                    1,
+                    nextPiecesTextures[0].Height * settings.GridSquareSize/2 +settings.GridSquareSize +2),
+                Color.White);
+            
+            spriteBatch.Draw(whitePixel,
+                new Microsoft.Xna.Framework.Rectangle((NextPiecesX + DisplayOffsetX)-1,
+                    (NextPiecesY + DisplayOffsetY)-1,
+                    nextPiecesTextures[0].Width * settings.GridSquareSize/2 +2,
+                    1),
+                Color.White);
+            
+            spriteBatch.Draw(whitePixel,
+                new Microsoft.Xna.Framework.Rectangle((NextPiecesX + DisplayOffsetX) -1,
+                    (NextPiecesY + DisplayOffsetY) + nextPiecesTextures[0].Height * settings.GridSquareSize/2 +settings.GridSquareSize +2,
+                    nextPiecesTextures[0].Width * settings.GridSquareSize/2 +2,
+                    1),
+                Color.White);
+            #endregion
+            
+            #region 4 lines for buffer pieces
+            
+            /*
+            spriteBatch.Draw(whitePixel,
+                new Microsoft.Xna.Framework.Rectangle((BufferedPieceX + DisplayOffsetX)-1,
+                    (BufferedPieceY + DisplayOffsetY)-1,
+                    (bufferedPieceTextures[0].Width +1)* settings.GridSquareSize  +2,
+                    (bufferedPieceTextures[0].Height +1)* settings.GridSquareSize  +2),
+                Color.White);
+                
+                */
+            
+            
+            
+            spriteBatch.Draw(whitePixel,
+                new Microsoft.Xna.Framework.Rectangle((BufferedPieceX + DisplayOffsetX)-1,
+                    (BufferedPieceY + DisplayOffsetY)-1,
+                    1,
+                    (bufferedPieceTextures[0].Height +1)* settings.GridSquareSize  +2),
+                Color.White);
+            
+            spriteBatch.Draw(whitePixel,
+                new Microsoft.Xna.Framework.Rectangle((BufferedPieceX + DisplayOffsetX) + (bufferedPieceTextures[0].Width +1)* settings.GridSquareSize  +2,
+                    (BufferedPieceY + DisplayOffsetY)-1,
+                    1,
+                    (bufferedPieceTextures[0].Height +1)* settings.GridSquareSize  +2),
+                Color.White);
+            
+            spriteBatch.Draw(whitePixel,
+                new Microsoft.Xna.Framework.Rectangle((BufferedPieceX + DisplayOffsetX)-1,
+                    (BufferedPieceY + DisplayOffsetY)-1,
+                    (bufferedPieceTextures[0].Width +1)* settings.GridSquareSize  +2,
+                    1),
+                Color.White);
+            
+            spriteBatch.Draw(whitePixel,
+                new Microsoft.Xna.Framework.Rectangle((BufferedPieceX + DisplayOffsetX)-1,
+                    (BufferedPieceY + DisplayOffsetY) + (bufferedPieceTextures[0].Height +1)* settings.GridSquareSize  +2,
+                    (bufferedPieceTextures[0].Width +1)* settings.GridSquareSize  +2,
+                    1),
+                Color.White);
+                
+            
+            #endregion
+            
+
+            
+            // background for buffer/next pieces
+            spriteBatch.Draw(backgroundTexture, 
+                new Microsoft.Xna.Framework.Rectangle(0,0, backgroundTexture.Width*settings.GridSquareSize,
+                    backgroundTexture.Height * settings.GridSquareSize),
+                Color.White);
 
 
-            // draw buffered piece (only 0th player's currently)
+            bool oddX = !(bufferedPieces[0] == Tetromino.Type.I || bufferedPieces[0] == Tetromino.Type.O);
+            bool oddY = (bufferedPieces[0] == Tetromino.Type.I);
+
             spriteBatch.Draw(bufferedPieceTextures[0],
-                new Microsoft.Xna.Framework.Rectangle((BufferedPieceX + DisplayOffsetX),
-                    (BufferedPieceY + DisplayOffsetY),
+                new Microsoft.Xna.Framework.Rectangle((BufferedPieceX + DisplayOffsetX + ((oddX)?settings.GridSquareSize:settings.GridSquareSize/2)),
+                    (BufferedPieceY + DisplayOffsetY + ((oddY)?0:settings.GridSquareSize/2)),
                     bufferedPieceTextures[0].Width * settings.GridSquareSize,
                     bufferedPieceTextures[0].Height * settings.GridSquareSize),
                 Color.White);
-            
-            /*
-            spriteBatch.Draw(bufferedPieceTextures[1],
-                new Vector2(((float)BufferedPieceX*2 + DisplayOffsetX) / GridSquareSize -2,
-                    ((float)BufferedPieceY + DisplayOffsetY) / GridSquareSize),
-                Color.White)6;
-            */
 
 
             // draw next pieces queue (only 0th player's currently)
             spriteBatch.Draw(nextPiecesTextures[0],
                 new Microsoft.Xna.Framework.Rectangle((NextPiecesX + DisplayOffsetX),
                     (NextPiecesY + DisplayOffsetY),
-                    nextPiecesTextures[0].Width * settings.GridSquareSize,
-                    nextPiecesTextures[0].Height * settings.GridSquareSize),
+                    nextPiecesTextures[0].Width * settings.GridSquareSize/2,
+                    nextPiecesTextures[0].Height * settings.GridSquareSize/2),
                 Color.White);
+
             
             /*
             spriteBatch.Draw(nextPiecesTextures[1],
@@ -2053,8 +2174,8 @@ namespace MultiplayerTetris
 
                     Microsoft.Xna.Framework.Rectangle currentRect = 
                         new Microsoft.Xna.Framework.Rectangle((int) (phantomPositions[i].X + DisplayOffsetX + shakeX)+1,
-                        (int) (phantomPositions[i].Y + DisplayOffsetY + (int) shakeY)+1,
-                        settings.GridSquareSize * phantomDropTextures[i].Width -1, settings.GridSquareSize * phantomDropTextures[i].Height -1);
+                            (int) (phantomPositions[i].Y + DisplayOffsetY + (int) shakeY)+1,
+                            settings.GridSquareSize * phantomDropTextures[i].Width -1, settings.GridSquareSize * phantomDropTextures[i].Height -1);
                     
                     spriteBatch.Draw(phantomDropTextures[i], currentRect, Color.White);
                 
@@ -2188,8 +2309,11 @@ namespace MultiplayerTetris
 
                 float scale = 2;
 
+                int xpos = (int)(settings.GridSquareSize + DisplayOffsetX + (int) shakeX +
+                    (GridWidth * settings.GridSquareSize / 2) - (pointEffectText.Length * 27) * (scale / 2));
+
                 spriteBatch.DrawString(spriteFont, pointEffectText,
-                    new Vector2(settings.ScreenWidth/2 - (pointEffectText.Length * 27)*(scale/2), settings.ScreenHeight / 2 - 25 * (scale / 2))
+                    new Vector2(xpos, settings.ScreenHeight / 2 - 25 * (scale / 2))
                     , pointsColor, 0f, Vector2.Zero
                     , new Vector2(scale, scale), SpriteEffects.None, 0f);
             }
