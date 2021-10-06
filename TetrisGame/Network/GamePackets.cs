@@ -18,9 +18,10 @@ namespace MultiplayerTetris.Network
             switch ((PacketType)packet[0])
             {
                 case PacketType.PlayerNameRequest:
-                    return PlayerNameRequestPacket.FromBytes(ref packet);
+                    
+                    return new PlayerNameRequestPacket().FromBytes(ref packet);
                 case PacketType.PlayerNameAnswer:
-                    return PlayerNameAnswerPacket.FromBytes(ref packet);
+                    return new PlayerNameAnswerPacket().FromBytes(ref packet);
             }
 
             return null;
@@ -39,9 +40,9 @@ namespace MultiplayerTetris.Network
             return packet;
         }
 
-        public static GamePacket FromBytes(ref byte[] packet)
+        public override GamePacket FromBytes(ref byte[] packet)
         {
-            return new PlayerNameRequestPacket();
+            return this;
         }
     }
 
@@ -51,9 +52,13 @@ namespace MultiplayerTetris.Network
         
         public string PlayerName;
 
-        public PlayerNameAnswerPacket(string playerName) : base(PacketType.PlayerNameAnswer, 41)
+        public PlayerNameAnswerPacket(string playerName) : base(PacketType.PlayerNameAnswer, NameStringSize + 1)
         {
             PlayerName = playerName;
+        }
+
+        public PlayerNameAnswerPacket() : base(PacketType.PlayerNameAnswer, NameStringSize + 1)
+        {
         }
         
         public override byte[] ToBytes()
@@ -63,10 +68,10 @@ namespace MultiplayerTetris.Network
             return packetSpan;
         }
 
-        public static GamePacket FromBytes(ref byte[] packet)
+        public override GamePacket FromBytes(ref byte[] packet)
         {
-            PlayerNameAnswerPacket gamePacket = new PlayerNameAnswerPacket(Encoding.UTF8.GetString(packet, 1, NameStringSize));
-            return gamePacket;
+            PlayerName = Encoding.UTF8.GetString(packet, 1, NameStringSize);
+            return this;
         }
     }
 }

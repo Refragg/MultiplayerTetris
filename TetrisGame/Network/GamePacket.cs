@@ -15,6 +15,8 @@ namespace MultiplayerTetris.Network
             return packet;
         }
 
+        public abstract GamePacket FromBytes(ref byte[] packet);
+
         public GamePacket(PacketType packetType, int packetSize)
         {
             Type = packetType;
