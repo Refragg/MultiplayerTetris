@@ -9,6 +9,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using MultiplayerTetris.Network;
 
 namespace MultiplayerTetris
 {
@@ -195,6 +196,8 @@ namespace MultiplayerTetris
         private AudioManager audioManager;
         private AudioEmitter audioEmitter;
         private Vector3 soundPosition;
+
+        private NetworkManager networkManager;
         
         #endregion
 
@@ -518,6 +521,8 @@ namespace MultiplayerTetris
                 UpdatePhantom(i);
 
             }
+
+            networkManager = new NetworkManager();
 
             #endregion
 
@@ -1830,8 +1835,21 @@ namespace MultiplayerTetris
                 
                 bool moveRightExtraCheck = (collidingRight&&gravityMultipliers[currentPieceIndex]>1) && moveRightHeld;
                 bool moveLeftExtraCheck = (collidingLeft&&gravityMultipliers[currentPieceIndex]>1) && moveLeftHeld;
-                
 
+                bool networkSCreate =
+                    inputHandler.KeyPressed(new PlayerControl(false, 0, 0, 0f, 0f, Keys.O, Buttons.BigButton));
+                bool networkCConnect = inputHandler.KeyPressed(new PlayerControl(false, 0, 0, 0f, 0f, Keys.P, Buttons.BigButton));
+
+                if (networkSCreate)
+                {
+                    networkManager.CreateServer(1357, 1);
+                }
+
+                if (networkCConnect)
+                {
+                    networkManager.CreateClient();
+                    networkManager.Connect("localhost", 1357);
+                }
 
                 if (moveRightHeld && moveLeftHeld && !rightLock && !leftLock)
                 {

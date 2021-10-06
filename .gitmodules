@@ -1,0 +1,3 @@
+[submodule "ENetOnline"]
+	path = ENetOnline
+	url = https://github.com/R3FR4G/ENetOnline-Library.git
